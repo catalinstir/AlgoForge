@@ -1,0 +1,48 @@
+fakecode
+
+build tool: Vite
+frontend: React, Bootstrap
+backend: nodejs
+db: mysql
+
+cerinte:
+- logare, autentificare (JWT)
+- roluri:
+	- logged user:
+		- view own profile
+		- statistics: solved problems, submitted problems
+		- has username, password, email(opt), image?(opt)
+		- can solve and submit problems, search users?
+		- 
+	- guest:
+		- can search/view problems, can't submit code
+		- can search users?
+	- admin:
+		- can CRUD and solve problems
+		- can CRUD users
+
+- view problems:
+	- filter by difficulty: Easy, Medium, Hard
+	- filter by no. solves?
+	- search by name
+- code:
+	- docker container for each language
+	- checking on the output of the container
+	- copy your code in clipboard?
+- languages:
+	- C 
+	- C++
+	- Python
+	- JS?
+	- Rust?
+- support?:
+	- submit complain/suggestion ticket to admins
+	- receive response when addressed by admins
+- forums?:
+	- posts listed by upvotes
+	- clicking on them opens new window
+	- can upvote/downvote posts
+	- can comment and see comments??
+- comments/proposed solutions on every problems??
+- saved code drafts per problem (user/admin)
+- 

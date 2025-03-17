@@ -1,0 +1,72 @@
+/* App.css - Dark Mode */
+.app-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: #121212;
+}
+
+.login-container {
+  width: 100%;
+  max-width: 450px;
+  padding: 15px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.login-form-container {
+  background-color: #1e1e1e;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  width: 100%;
+  color: #e0e0e0;
+}
+
+h2 {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  color: #ffffff;
+}
+
+.form-control {
+  background-color: #2d2d2d;
+  border-color: #444444;
+  color: #e0e0e0;
+}
+
+.form-control:focus {
+  background-color: #333333;
+  border-color: #555555;
+  color: #ffffff;
+  box-shadow: 0 0 0 0.25rem rgba(88, 95, 99, 0.25);
+}
+
+.form-label {
+  color: #b0b0b0;
+}
+
+.btn-primary {
+  width: 100%;
+  margin-top: 1rem;
+  background-color: #ffb22c;
+  border-color: #ffb22c;
+}
+
+.btn-primary:hover {
+  background-color: #ffb200;
+  border-color: #ffb200;
+}
+
+.btn-link {
+  color: #F9CB43;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.btn-link:hover {
+  color: #F9CB43;
+  text-decoration: underline;
+}
