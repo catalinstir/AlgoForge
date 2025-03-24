@@ -1,0 +1,61 @@
+.problems-container {
+  background-color: #1e1e1e;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  padding: 1.5rem;
+}
+
+.problem-row {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.problem-row:hover {
+  background-color: #2d2d2d !important;
+}
+
+.problem-title {
+  font-weight: 500;
+  color: #4d55cc;
+}
+
+.problem-title:hover {
+  text-decoration: underline;
+}
+
+.difficulty-filter .btn-outline-secondary {
+  color: #b0b0b0;
+  border-color: #444444;
+  background-color: #2d2d2d;
+}
+
+.difficulty-filter .btn-outline-secondary:hover {
+  background-color: #3d3d3d;
+  color: #ffffff;
+}
+
+.text-success {
+  color: #3cb371 !important;
+}
+
+.text-warning {
+  color: #ffa500 !important;
+}
+
+.text-danger {
+  color: #dc3545 !important;
+}
+
+.table-dark thead th {
+  background-color: #252525;
+  border-top: none;
+}
+
+.table-dark {
+  background-color: #1e1e1e;
+  color: #e0e0e0;
+}
+
+.table-dark.table-hover tbody tr:hover {
+  background-color: #2d2d2d;
+}

@@ -1,7 +1,11 @@
 import { useState } from "react";
 import "../../styles/App.css";
 
-const Login = () => {
+interface LoginProps {
+  onLoginSuccess: (username: string) => void;
+}
+
+const Login = ({ onLoginSuccess }: LoginProps) => {
   const [isLogin, setIsLogin] = useState(true);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -11,9 +15,15 @@ const Login = () => {
     e.preventDefault();
     if (isLogin) {
       console.log("Logging in with:", { username, password });
+      // In a real app, you would validate credentials here
+      // For now, we'll just simulate a successful login
+      onLoginSuccess(username);
     } else {
       if (password === confirmPassword) {
         console.log("Signing up with:", { username, password });
+        // In a real app, you would create a new user here
+        // For now, we'll just simulate a successful signup
+        onLoginSuccess(username);
       } else {
         alert("Passwords do not match");
       }
@@ -32,7 +42,7 @@ const Login = () => {
       <div className="login-form-container">
         <h2>{isLogin ? "Login" : "Sign Up"}</h2>
         <form onSubmit={handleSubmit}>
-          <div className="mb-3">
+          <div className="mb-4">
             <label htmlFor="username" className="form-label">
               Username
             </label>
@@ -45,7 +55,7 @@ const Login = () => {
               required
             />
           </div>
-          <div className="mb-3">
+          <div className="mb-4">
             <label htmlFor="password" className="form-label">
               Password
             </label>
@@ -59,7 +69,7 @@ const Login = () => {
             />
           </div>
           {!isLogin && (
-            <div className="mb-3">
+            <div className="mb-4">
               <label htmlFor="confirmPassword" className="form-label">
                 Re-type Password
               </label>
@@ -67,6 +77,7 @@ const Login = () => {
                 type="password"
                 className="form-control"
                 id="confirmPassword"
+                placeholder="Confirm your password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
@@ -77,7 +88,7 @@ const Login = () => {
             {isLogin ? "Login" : "Sign Up"}
           </button>
         </form>
-        <div className="mt-3 text-center">
+        <div className="mt-4 text-center">
           <p>
             {isLogin ? "Don't have an account? " : "Already have an account? "}
             <button className="btn btn-link p-0" onClick={toggleMode}>
