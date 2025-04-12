@@ -11,8 +11,8 @@ const Navbar = ({ isLoggedIn, username, onLoginClick }: NavbarProps) => {
     <nav className="navbar navbar-expand-lg navbar-dark">
       <div className="container-fluid">
         <a className="navbar-brand fw-bold fs-3" href="#">
-          &lt;<span style={{ color: "#4D55CC" }}>/</span>&gt; Algo
-          <span style={{ color: "#4D55CC" }}>Rush</span>
+          &lt;<span style={{ color: "#736efa" }}>/</span>&gt; Algo
+          <span style={{ color: "#736efa" }}>Rush</span>
         </a>
         <button
           className="navbar-toggler"
@@ -29,7 +29,7 @@ const Navbar = ({ isLoggedIn, username, onLoginClick }: NavbarProps) => {
           <ul className="navbar-nav me-auto mb-2 mb-lg-0">
             <li className="nav-item">
               <a className="nav-link" href="#">
-                Home
+                Problems
               </a>
             </li>
             <li className="nav-item">
