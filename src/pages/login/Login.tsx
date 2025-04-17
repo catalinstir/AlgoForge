@@ -1,9 +1,13 @@
 import { useState } from "react";
 import "../../styles/App.css";
+import { UserRole } from "../../App";
 
 interface LoginProps {
-  onLoginSuccess: (username: string) => void;
+  onLoginSuccess: (username: string, role: UserRole) => void;
 }
+
+// Predefined admin users for easy testing
+const ADMIN_USERS = ["admin", "admin@algorush.com"];
 
 const Login = ({ onLoginSuccess }: LoginProps) => {
   const [isLogin, setIsLogin] = useState(true);
@@ -13,17 +17,23 @@ const Login = ({ onLoginSuccess }: LoginProps) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Determine user role (admin or user)
+    const role: UserRole = ADMIN_USERS.includes(username.toLowerCase())
+      ? "admin"
+      : "user";
+
     if (isLogin) {
-      console.log("Logging in with:", { username, password });
+      console.log("Logging in with:", { username, password, role });
       // In a real app, you would validate credentials here
       // For now, we'll just simulate a successful login
-      onLoginSuccess(username);
+      onLoginSuccess(username, role);
     } else {
       if (password === confirmPassword) {
-        console.log("Signing up with:", { username, password });
+        console.log("Signing up with:", { username, password, role });
         // In a real app, you would create a new user here
         // For now, we'll just simulate a successful signup
-        onLoginSuccess(username);
+        onLoginSuccess(username, role);
       } else {
         alert("Passwords do not match");
       }
@@ -54,6 +64,11 @@ const Login = ({ onLoginSuccess }: LoginProps) => {
               onChange={(e) => setUsername(e.target.value)}
               required
             />
+            {isLogin && (
+              <small className="form-text text-muted">
+                Try "admin" for admin access
+              </small>
+            )}
           </div>
           <div className="mb-4">
             <label htmlFor="password" className="form-label">

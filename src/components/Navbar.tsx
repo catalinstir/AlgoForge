@@ -1,19 +1,26 @@
-import { useState } from "react";
+import { Link } from "react-router-dom";
+import { User } from "../App";
 
 interface NavbarProps {
   isLoggedIn: boolean;
-  username?: string;
+  currentUser: User | null;
   onLoginClick: () => void;
+  onLogout: () => void;
 }
 
-const Navbar = ({ isLoggedIn, username, onLoginClick }: NavbarProps) => {
+const Navbar = ({
+  isLoggedIn,
+  currentUser,
+  onLoginClick,
+  onLogout,
+}: NavbarProps) => {
   return (
     <nav className="navbar navbar-expand-lg navbar-dark">
       <div className="container-fluid">
-        <a className="navbar-brand fw-bold fs-3" href="#">
+        <Link className="navbar-brand fw-bold fs-3" to="/">
           &lt;<span style={{ color: "#736efa" }}>/</span>&gt; Algo
           <span style={{ color: "#736efa" }}>Rush</span>
-        </a>
+        </Link>
         <button
           className="navbar-toggler"
           type="button"
@@ -28,23 +35,31 @@ const Navbar = ({ isLoggedIn, username, onLoginClick }: NavbarProps) => {
         <div className="collapse navbar-collapse" id="navbarNav">
           <ul className="navbar-nav me-auto mb-2 mb-lg-0">
             <li className="nav-item">
-              <a className="nav-link" href="#">
+              <Link className="nav-link" to="/problems">
                 Problems
-              </a>
+              </Link>
             </li>
             <li className="nav-item">
-              <a className="nav-link" href="#">
+              <Link className="nav-link" to="/browse">
                 Browse
-              </a>
+              </Link>
             </li>
             <li className="nav-item">
-              <a className="nav-link" href="#">
+              <Link className="nav-link" to="/forums">
                 Forums
-              </a>
+              </Link>
             </li>
+            {isLoggedIn && currentUser?.role === "admin" && (
+              <li className="nav-item">
+                <Link className="nav-link" to="/admin">
+                  <span className="badge bg-danger me-1">Admin</span>
+                  Dashboard
+                </Link>
+              </li>
+            )}
           </ul>
           <div className="d-flex">
-            {isLoggedIn ? (
+            {isLoggedIn && currentUser ? (
               <div className="dropdown">
                 <button
                   className="btn btn-dark dropdown-toggle"
@@ -53,29 +68,35 @@ const Navbar = ({ isLoggedIn, username, onLoginClick }: NavbarProps) => {
                   data-bs-toggle="dropdown"
                   aria-expanded="false"
                 >
-                  {username}
+                  {currentUser.username}
+                  <span className="ms-2 badge bg-primary">
+                    {currentUser.problemsSolved}/{currentUser.totalProblems}
+                  </span>
+                  {currentUser.role === "admin" && (
+                    <span className="ms-1 badge bg-danger">Admin</span>
+                  )}
                 </button>
                 <ul
                   className="dropdown-menu dropdown-menu-end dropdown-menu-dark"
                   aria-labelledby="userDropdown"
                 >
                   <li>
-                    <a className="dropdown-item" href="#">
+                    <Link className="dropdown-item" to="/profile">
                       Profile
-                    </a>
+                    </Link>
                   </li>
                   <li>
-                    <a className="dropdown-item" href="#">
+                    <Link className="dropdown-item" to="/settings">
                       Settings
-                    </a>
+                    </Link>
                   </li>
                   <li>
                     <hr className="dropdown-divider" />
                   </li>
                   <li>
-                    <a className="dropdown-item" href="#">
+                    <button className="dropdown-item" onClick={onLogout}>
                       Logout
-                    </a>
+                    </button>
                   </li>
                 </ul>
               </div>
