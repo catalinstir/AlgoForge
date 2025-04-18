@@ -1,0 +1,127 @@
+/* AdminDashboard.css */
+
+/* Button styling for all admin buttons */
+.admin-dashboard .btn {
+  font-weight: 600;
+  border-radius: 4px;
+  transition: all 0.2s ease-in-out;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  padding: 0.4rem 0.8rem;
+  margin: 0 2px;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+}
+
+.admin-dashboard .btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.admin-dashboard .btn:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Tab button styling */
+.admin-dashboard .nav-link {
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+  transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+  border-bottom: 3px solid transparent;
+}
+
+.admin-dashboard .nav-link:not(.active):hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.admin-dashboard .nav-link.active {
+  background-color: #343a40 !important;
+  color: #fff !important;
+  border-color: #6c757d !important;
+  border-bottom: 3px solid #17a2b8;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Action buttons styling */
+.admin-dashboard .btn-success {
+  background-color: #28a745;
+  border-color: #28a745;
+}
+
+.admin-dashboard .btn-warning {
+  background-color: #ffc107;
+  border-color: #ffc107;
+  color: #212529;
+}
+
+.admin-dashboard .btn-danger {
+  background-color: #dc3545;
+  border-color: #dc3545;
+}
+
+.admin-dashboard .btn-info {
+  background-color: #17a2b8;
+  border-color: #17a2b8;
+}
+
+/* Action buttons in table */
+.admin-dashboard .table .btn {
+  min-width: 60px;
+  margin: 2px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.7rem;
+}
+
+/* Add New Problem button */
+.admin-dashboard .btn-add-new {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+}
+
+/* Badge styling */
+.admin-dashboard .badge {
+  padding: 0.4em 0.65em;
+  font-weight: 600;
+  font-size: 0.75em;
+}
+
+/* Table styling improvements */
+.admin-dashboard .table {
+  border-radius: 8px;
+  overflow: hidden;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid #343a40;
+}
+
+.admin-dashboard .table th {
+  background-color: #212529;
+  border-bottom: 2px solid #495057;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 0.5px;
+}
+
+/* Glow effect for badges */
+.admin-dashboard .badge.bg-success {
+  box-shadow: 0 0 8px rgba(40, 167, 69, 0.5);
+}
+
+.admin-dashboard .badge.bg-warning {
+  box-shadow: 0 0 8px rgba(255, 193, 7, 0.5);
+}
+
+.admin-dashboard .badge.bg-danger {
+  box-shadow: 0 0 8px rgba(220, 53, 69, 0.5);
+}
+
+.admin-dashboard .badge.bg-info {
+  box-shadow: 0 0 8px rgba(23, 162, 184, 0.5);
+}
+
+/* Dashboard header improvements */
+.admin-dashboard .border-bottom.border-secondary {
+  border-bottom: 2px solid #495057 !important;
+}

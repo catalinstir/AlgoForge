@@ -1,10 +1,8 @@
+import React from "react";
+import { Problem } from "../App"; // Import shared Problem type
+
 interface ProblemPreviewProps {
-  problem: {
-    id: number;
-    title: string;
-    difficulty: "Easy" | "Medium" | "Hard";
-    description: string;
-  };
+  problem: Problem; // Use the shared Problem type
 }
 
 const ProblemPreview = ({ problem }: ProblemPreviewProps) => {
@@ -23,7 +21,15 @@ const ProblemPreview = ({ problem }: ProblemPreviewProps) => {
     }
   };
 
+  // Ensure description exists before trying to access length or substring
+  const descriptionPreview = problem.description
+    ? problem.description.length > 150
+      ? problem.description.substring(0, 150) + "..."
+      : problem.description
+    : "No description available.";
+
   return (
+    // Added specific class for styling the preview card
     <div className="problem-preview-card">
       <div className="preview-header">
         <span className="preview-id">{problem.id}.</span>
@@ -36,11 +42,7 @@ const ProblemPreview = ({ problem }: ProblemPreviewProps) => {
           {problem.difficulty}
         </span>
       </div>
-      <div className="preview-description">
-        {problem.description.length > 200
-          ? problem.description.substring(0, 200) + "..."
-          : problem.description}
-      </div>
+      <div className="preview-description">{descriptionPreview}</div>
     </div>
   );
 };

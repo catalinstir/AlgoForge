@@ -1,10 +1,11 @@
-import { Link } from "react-router-dom";
-import { User } from "../App";
+import React from "react";
+import { Link, NavLink } from "react-router-dom"; // Use NavLink for active styling
+import { User } from "../App"; // Import User type
 
 interface NavbarProps {
   isLoggedIn: boolean;
   currentUser: User | null;
-  onLoginClick: () => void;
+  onLoginClick: () => void; // Function to trigger login modal/page
   onLogout: () => void;
 }
 
@@ -15,12 +16,16 @@ const Navbar = ({
   onLogout,
 }: NavbarProps) => {
   return (
-    <nav className="navbar navbar-expand-lg navbar-dark">
+    // Navbar styling from App.css
+    <nav className="navbar navbar-expand-lg navbar-dark sticky-top">
       <div className="container-fluid">
-        <Link className="navbar-brand fw-bold fs-3" to="/">
+        {/* Brand Logo */}
+        <Link className="navbar-brand fw-bold fs-3 me-4" to="/">
           &lt;<span style={{ color: "#736efa" }}>/</span>&gt; Algo
           <span style={{ color: "#736efa" }}>Rush</span>
         </Link>
+
+        {/* Navbar Toggler for mobile */}
         <button
           className="navbar-toggler"
           type="button"
@@ -32,48 +37,58 @@ const Navbar = ({
         >
           <span className="navbar-toggler-icon"></span>
         </button>
+
+        {/* Navbar Links */}
         <div className="collapse navbar-collapse" id="navbarNav">
           <ul className="navbar-nav me-auto mb-2 mb-lg-0">
             <li className="nav-item">
-              <Link className="nav-link" to="/problems">
+              {/* Use NavLink for active class */}
+              <NavLink className="nav-link" to="/problems">
                 Problems
-              </Link>
+              </NavLink>
             </li>
             <li className="nav-item">
-              <Link className="nav-link" to="/browse">
+              <NavLink className="nav-link" to="/browse">
                 Browse
-              </Link>
+              </NavLink>
             </li>
             <li className="nav-item">
-              <Link className="nav-link" to="/forums">
+              <NavLink className="nav-link" to="/forums">
                 Forums
-              </Link>
+              </NavLink>
             </li>
+            {/* Admin Dashboard Link (conditional) */}
             {isLoggedIn && currentUser?.role === "admin" && (
               <li className="nav-item">
-                <Link className="nav-link" to="/admin">
+                <NavLink className="nav-link" to="/admin">
                   <span className="badge bg-danger me-1">Admin</span>
                   Dashboard
-                </Link>
+                </NavLink>
               </li>
             )}
           </ul>
-          <div className="d-flex">
+
+          {/* Right side - User/Login */}
+          <div className="d-flex align-items-center">
             {isLoggedIn && currentUser ? (
+              // User Dropdown Menu
               <div className="dropdown">
                 <button
-                  className="btn btn-dark dropdown-toggle"
+                  className="btn btn-dark dropdown-toggle d-flex align-items-center"
                   type="button"
                   id="userDropdown"
                   data-bs-toggle="dropdown"
                   aria-expanded="false"
                 >
-                  {currentUser.username}
-                  <span className="ms-2 badge bg-primary">
+                  {/* Optional: Add avatar/icon here */}
+                  <span className="me-2">{currentUser.username}</span>
+                  {/* Progress Badge */}
+                  <span className="badge bg-primary me-1">
                     {currentUser.problemsSolved}/{currentUser.totalProblems}
                   </span>
+                  {/* Admin Badge */}
                   {currentUser.role === "admin" && (
-                    <span className="ms-1 badge bg-danger">Admin</span>
+                    <span className="badge bg-danger">Admin</span>
                   )}
                 </button>
                 <ul
@@ -101,10 +116,11 @@ const Navbar = ({
                 </ul>
               </div>
             ) : (
+              // Login Button
               <button
                 className="btn btn-outline-light"
                 type="button"
-                onClick={onLoginClick}
+                onClick={onLoginClick} // Trigger login modal/page
               >
                 Login / Sign Up
               </button>

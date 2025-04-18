@@ -1,22 +1,23 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   BrowserRouter as Router,
   Route,
   Routes,
   Navigate,
+  useLocation,
+  useNavigate,
 } from "react-router-dom";
 import Login from "./pages/login/Login";
 import Navbar from "./components/Navbar";
 import ProblemList from "./components/ProblemList";
+import ProblemDetails from "./pages/problem/ProblemDetails";
 import Profile from "./pages/profile/Profile";
 import Forums from "./pages/forums/Forums";
 import Browse from "./pages/browse/Browse";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 
-// Define user roles
 export type UserRole = "guest" | "user" | "admin";
 
-// Define user type
 export interface User {
   username: string;
   role: UserRole;
@@ -24,39 +25,101 @@ export interface User {
   totalProblems: number;
 }
 
+export interface Problem {
+  id: number;
+  title: string;
+  difficulty: "Easy" | "Medium" | "Hard";
+  description: string;
+  acceptance?: string;
+  examples?: {
+    input: string;
+    output: string;
+    explanation?: string;
+  }[];
+  constraints?: string[];
+  uploadedBy?: string;
+  functionName?: string;
+  codeTemplates?: {
+    [key: string]: string;
+  };
+}
+
+const BackgroundManager = ({ children }: { children: React.ReactNode }) => {
+  const location = useLocation();
+
+  const showBackgroundRoutes = [
+    "/login",
+    "/problems",
+    "/browse",
+    "/forums",
+    "/profile",
+    "/settings",
+    "/admin",
+    "/",
+  ];
+
+  const path = location.pathname;
+
+  const showBackground =
+    showBackgroundRoutes.some((route) => path === route) &&
+    !/^\/problem\/\d+/.test(path);
+
+  return (
+    <>
+      {showBackground && <div className="sliding-background"></div>}
+      {children}
+    </>
+  );
+};
+
 const App = () => {
-  const [showLoginPage, setShowLoginPage] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const navigate = useNavigate();
 
-  // Check if user was previously logged in (using localStorage in this mock version)
   useEffect(() => {
     const savedUser = localStorage.getItem("currentUser");
     if (savedUser) {
-      setCurrentUser(JSON.parse(savedUser));
-      setIsLoggedIn(true);
+      try {
+        const parsedUser = JSON.parse(savedUser);
+        if (
+          parsedUser &&
+          typeof parsedUser.username === "string" &&
+          typeof parsedUser.role === "string"
+        ) {
+          setCurrentUser(parsedUser);
+          setIsLoggedIn(true);
+        } else {
+          console.error("Invalid user data found in localStorage");
+          localStorage.removeItem("currentUser");
+        }
+      } catch (error) {
+        console.error("Failed to parse user data from localStorage", error);
+        localStorage.removeItem("currentUser");
+      }
     }
   }, []);
 
   const handleLoginClick = () => {
-    setShowLoginPage(true);
+    navigate("/login");
   };
 
   const handleLoginSuccess = (username: string, role: UserRole = "user") => {
-    // Create a mock user with some solved problems
     const newUser: User = {
       username,
       role,
-      problemsSolved: Math.floor(Math.random() * 5) + 1, // Random number between 1-5
+      problemsSolved: Math.floor(Math.random() * 5) + 1,
       totalProblems: 10,
     };
 
     setCurrentUser(newUser);
     setIsLoggedIn(true);
-    setShowLoginPage(false);
 
-    // Save user to localStorage for persistence
-    localStorage.setItem("currentUser", JSON.stringify(newUser));
+    try {
+      localStorage.setItem("currentUser", JSON.stringify(newUser));
+    } catch (error) {
+      console.error("Failed to save user data to localStorage", error);
+    }
   };
 
   const handleLogout = () => {
@@ -66,12 +129,8 @@ const App = () => {
   };
 
   return (
-    <Router>
-      <div className="app-container">
-        {(showLoginPage || window.location.pathname === "/problems") && (
-          <div className="sliding-background"></div>
-        )}
-
+    <div className="app-container">
+      <BackgroundManager>
         <div className="content-container">
           <Navbar
             isLoggedIn={isLoggedIn}
@@ -80,74 +139,99 @@ const App = () => {
             onLogout={handleLogout}
           />
 
-          {showLoginPage ? (
-            <div className="container d-flex justify-content-center align-items-center login-page-container">
-              <Login onLoginSuccess={handleLoginSuccess} />
-            </div>
-          ) : (
-            <Routes>
-              <Route path="/" element={<Navigate to="/problems" />} />
-              <Route
-                path="/problems"
-                element={
+          <Routes>
+            <Route path="/" element={<Navigate to="/problems" />} />
+
+            <Route
+              path="/problems"
+              element={
+                <div className="container main-content p-4">
+                  <ProblemList />
+                </div>
+              }
+            />
+
+            <Route
+              path="/problem/:problemId"
+              element={<ProblemDetails currentUser={currentUser} />}
+            />
+
+            <Route
+              path="/browse"
+              element={
+                <div className="container main-content p-4">
+                  <Browse />
+                </div>
+              }
+            />
+
+            <Route
+              path="/forums"
+              element={
+                <div className="container main-content p-4">
+                  <Forums />
+                </div>
+              }
+            />
+
+            <Route
+              path="/profile"
+              element={
+                isLoggedIn ? (
                   <div className="container main-content p-4">
-                    <ProblemList />
+                    <Profile user={currentUser} />
                   </div>
-                }
-              />
-              <Route
-                path="/browse"
-                element={
+                ) : (
+                  <Navigate to="/" />
+                )
+              }
+            />
+
+            <Route
+              path="/settings"
+              element={
+                isLoggedIn ? (
+                  <div className="container main-content p-4 text-light">
+                    <h2>Settings</h2>
+                    <p>Settings page content goes here.</p>
+                  </div>
+                ) : (
+                  <Navigate to="/" />
+                )
+              }
+            />
+
+            <Route
+              path="/admin"
+              element={
+                isLoggedIn && currentUser?.role === "admin" ? (
                   <div className="container main-content p-4">
-                    <Browse />
+                    <AdminDashboard currentUser={currentUser} />
                   </div>
-                }
-              />
-              <Route
-                path="/forums"
-                element={
-                  <div className="container main-content p-4">
-                    <Forums />
-                  </div>
-                }
-              />
-              <Route
-                path="/profile"
-                element={
-                  isLoggedIn ? (
-                    <div className="container main-content p-4">
-                      <Profile user={currentUser} />
-                    </div>
-                  ) : (
-                    <Navigate to="/" />
-                  )
-                }
-              />
-              <Route
-                path="/admin"
-                element={
-                  isLoggedIn && currentUser?.role === "admin" ? (
-                    <div className="container main-content p-4">
-                      <AdminDashboard currentUser={currentUser} />
-                    </div>
-                  ) : (
-                    <Navigate to="/" />
-                  )
-                }
-              />
-              <Route
-                path="/login"
-                element={
+                ) : (
+                  <Navigate to="/problems" />
+                )
+              }
+            />
+
+            <Route
+              path="/login"
+              element={
+                !isLoggedIn ? (
                   <div className="container d-flex justify-content-center align-items-center login-page-container">
                     <Login onLoginSuccess={handleLoginSuccess} />
                   </div>
-                }
-              />
-            </Routes>
-          )}
+                ) : (
+                  <Navigate to="/problems" />
+                )
+              }
+            />
+
+            <Route path="*" element={<Navigate to="/problems" />} />
+          </Routes>
         </div>
-      </div>
-    </Router>
+      </BackgroundManager>
+    </div>
   );
 };
 

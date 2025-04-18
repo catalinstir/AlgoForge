@@ -1,0 +1,115 @@
+.code-editor {
+  position: relative; /* Establishes positioning context */
+  height: 100%; /* Fill the wrapper */
+  overflow: hidden; /* Hide container scrollbars */
+  background-color: #1e1e1e; /* Editor background color */
+  font-family: "Fira Code", Consolas, Monaco, "Andale Mono", "Ubuntu Mono",
+    monospace; /* Monospaced font */
+  font-size: 14px; /* Adjust font size */
+  line-height: 1.5; /* Adjust line height */
+}
+
+/* The actual text area (hidden visually but functional) */
+.editor-textarea {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  padding: 10px; /* Match pre padding */
+  margin: 0;
+  border: none;
+  outline: none;
+  resize: none;
+
+  /* Make text transparent, caret visible */
+  color: transparent;
+  background-color: transparent;
+  caret-color: white; /* Cursor color */
+
+  /* Font settings must match the <pre> exactly */
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  tab-size: 2; /* Match tab size if using tabs */
+  white-space: pre; /* Preserve whitespace like <pre> */
+  overflow-wrap: normal; /* Prevent wrapping */
+  overflow: auto; /* Allow scrolling */
+  z-index: 1; /* Above the preview */
+}
+
+/* The <pre> element for displaying highlighted code */
+.editor-preview {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  padding: 10px; /* Match textarea padding */
+  margin: 0;
+  border: none;
+  outline: none;
+  pointer-events: none; /* Allow clicks to pass through to textarea */
+
+  /* Font settings must match the <textarea> exactly */
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  tab-size: 2;
+  white-space: pre;
+  overflow-wrap: normal;
+  overflow: hidden; /* Scrolling handled by textarea */
+  z-index: 0; /* Below the textarea */
+}
+
+/* The <code> element inside <pre> */
+.editor-preview code[class*="language-"] {
+  display: block; /* Ensure code block takes full width */
+  min-height: 100%; /* Ensure background covers area even if empty */
+  color: #ccc; /* Default code color (Prism theme might override) */
+  background: none; /* Remove default Prism background */
+  text-shadow: none; /* Remove default Prism text shadow */
+  padding: 0; /* Remove default Prism padding */
+  margin: 0;
+}
+
+/* --- Scrollbar Styling (Optional - Webkit browsers) --- */
+.editor-textarea::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.editor-textarea::-webkit-scrollbar-track {
+  background: #2a2a2a;
+  border-radius: 4px;
+}
+
+.editor-textarea::-webkit-scrollbar-thumb {
+  background-color: #555;
+  border-radius: 4px;
+  border: 2px solid #2a2a2a; /* Creates padding around thumb */
+}
+
+.editor-textarea::-webkit-scrollbar-thumb:hover {
+  background-color: #777;
+}
+
+/* --- PrismJS Theme Adjustments (if needed) --- */
+/* Example: If using prism-okaidia.css, you might adjust background */
+/*
+  pre[class*="language-"].editor-preview {
+    background-color: #272822; // Okaidia background
+  }
+  code[class*="language-"] {
+      color: #f8f8f2; // Okaidia default text
+  }
+  */
+
+/* Ensure Prism theme styles apply correctly within the editor */
+.editor-preview code .token.comment,
+.editor-preview code .token.prolog,
+.editor-preview code .token.doctype,
+.editor-preview code .token.cdata {
+  color: slategray;
+}
+/* Add other token overrides if necessary based on your chosen theme */

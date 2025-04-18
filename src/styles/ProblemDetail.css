@@ -1,0 +1,171 @@
+.problem-detail-container {
+  /* Container for the entire page, takes full height potentially */
+  display: flex;
+  flex-direction: column; /* Or row depending on overall layout */
+  height: calc(
+    100vh - 60px
+  ); /* Full viewport height minus navbar height (adjust navbar height) */
+  overflow: hidden; /* Prevent scrolling on the main container */
+  background-color: #1e1e1e; /* Match problems list background */
+}
+
+.problem-detail-container .row {
+  height: 100%; /* Make row take full height of container */
+  flex-grow: 1; /* Allow row to grow */
+}
+
+/* Panes Styling */
+.editor-pane,
+.description-pane {
+  height: 100%; /* Make panes take full height of the row */
+  display: flex;
+  flex-direction: column;
+  overflow-y: hidden; /* Hide direct scrollbar, manage scrolling internally */
+}
+
+.description-pane {
+  background-color: #1e1e1e; /* Same as container */
+  border-left: 1px solid #333; /* Separator line */
+  overflow-y: auto; /* Allow description pane to scroll */
+  color: #e0e0e0;
+}
+
+.editor-pane {
+  background-color: #1a1a1a; /* Slightly different background for editor area */
+}
+
+/* Editor Header */
+.editor-header {
+  background-color: #252525; /* Darker header */
+  border-bottom: 1px solid #333;
+  flex-shrink: 0; /* Prevent header from shrinking */
+}
+
+.language-select-container select {
+  max-width: 120px; /* Limit width of language selector */
+  font-size: 0.85rem; /* Smaller font */
+}
+
+.action-buttons .btn {
+  font-size: 0.85rem; /* Smaller buttons */
+  padding: 0.25rem 0.6rem;
+}
+
+/* Code Editor Wrapper */
+.code-editor-wrapper {
+  flex-grow: 1; /* Takes up remaining space in the editor pane */
+  position: relative; /* Needed for CodeEditor component's absolute positioning */
+  overflow: hidden; /* Hide scrollbars, CodeEditor handles internal scrolling */
+}
+
+/* Output Container */
+.output-container {
+  background-color: #1a1a1a; /* Match editor pane */
+  border-top: 1px solid #333;
+  height: 200px; /* Fixed height for output area */
+  flex-shrink: 0; /* Prevent shrinking */
+  display: flex;
+  flex-direction: column;
+}
+
+.output-header {
+  background-color: #252525; /* Match editor header */
+  padding: 0.4rem 0.8rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #b0b0b0;
+  flex-shrink: 0;
+}
+
+.output-content {
+  padding: 0.8rem;
+  overflow-y: auto; /* Allow output content to scroll */
+  flex-grow: 1;
+  font-family: "Courier New", Courier, monospace; /* Monospace font for output */
+  font-size: 0.85rem;
+  color: #ccc;
+  white-space: pre-wrap; /* Wrap long lines in output */
+  background-color: #1e1e1e; /* Slightly different bg for content */
+}
+
+.output-content pre {
+  margin: 0; /* Remove default pre margin */
+  color: inherit; /* Inherit color */
+  background: none; /* No background for pre */
+  padding: 0;
+  border: none;
+}
+
+.output-content .text-muted {
+  color: #6c757d !important; /* Bootstrap muted color */
+}
+
+/* Problem Description Styling (within the pane) */
+.problem-description-container {
+  height: 100%; /* Ensure it fills the pane */
+  overflow-y: auto; /* Enable scrolling */
+  padding: 1.5rem; /* Padding inside the description area */
+}
+
+.problem-description-container h2.problem-title {
+  color: #ffffff;
+  font-weight: 400;
+}
+.problem-description-container .problem-difficulty.badge {
+  font-size: 0.9rem;
+  padding: 0.4em 0.7em;
+}
+
+.problem-description-container .description-section p {
+  line-height: 1.6;
+  color: #ccc;
+}
+
+.problem-description-container h5 {
+  color: #b0b0b0;
+  margin-bottom: 0.8rem !important;
+  font-weight: 500;
+}
+
+.problem-description-container .example-card {
+  background-color: #2a2a2a; /* Darker background for examples */
+  border: 1px solid #3a3a3a;
+}
+.problem-description-container .example-card strong {
+  color: #e0e0e0;
+}
+.problem-description-container .example-card pre {
+  background-color: #1a1a1a;
+  padding: 0.5rem 0.8rem;
+  border-radius: 4px;
+  color: #ccc;
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.problem-description-container .constraints-section ul {
+  padding-left: 0; /* Remove default padding */
+  list-style: none; /* Remove default list style */
+}
+.problem-description-container .constraints-section li {
+  background-color: #2a2a2a;
+  padding: 0.4rem 0.8rem;
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 0.85rem;
+  color: #ccc;
+}
+.problem-description-container .constraints-section li code {
+  color: inherit; /* Inherit color */
+  background: none;
+  padding: 0;
+}
+
+.problem-description-container .metadata-section {
+  font-size: 0.8rem;
+}
+.problem-description-container .contributor {
+  color: #9a93f5; /* Highlight contributor */
+}

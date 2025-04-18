@@ -1,8 +1,34 @@
 .problems-container {
-  background-color: #1e1e1e;
+  background-color: #1e1e1e; /* Dark background for the container */
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-  padding: 1.5rem;
+  padding: 1.5rem 2rem; /* More padding */
+  border: 1px solid #333; /* Subtle border */
+}
+
+.problems-container h2 {
+  font-weight: 300; /* Lighter heading */
+}
+
+.table-dark {
+  background-color: transparent; /* Let container background show */
+  color: #e0e0e0;
+  border-color: #444; /* Border color for table */
+}
+
+.table-dark th {
+  background-color: #252525; /* Slightly darker header */
+  border-top: none;
+  border-bottom: 2px solid #444; /* Stronger bottom border for header */
+  color: #b0b0b0; /* Lighter header text */
+  font-weight: 500;
+  white-space: nowrap; /* Prevent header text wrapping */
+}
+
+.table-dark td {
+  border-color: #333; /* Lighter border for cells */
+  padding: 0.8rem 1rem; /* Adjust cell padding */
+  vertical-align: middle; /* Align content vertically */
 }
 
 .problem-row {
@@ -11,51 +37,52 @@
 }
 
 .problem-row:hover {
-  background-color: #2d2d2d !important;
+  background-color: #2a2a2a !important; /* Slightly lighter hover */
 }
 
-.problem-title {
+.problem-title-link {
   font-weight: 500;
-  color: #4d55cc;
+  color: #a0a8ff; /* Lighter purple/blue */
+  text-decoration: none;
+  transition: color 0.2s ease;
 }
 
-.problem-title:hover {
+.problem-title-link:hover {
+  color: #c0c8ff; /* Even lighter on hover */
   text-decoration: underline;
 }
 
-.difficulty-filter .btn-outline-secondary {
-  color: #b0b0b0;
-  border-color: #444444;
-  background-color: #2d2d2d;
-}
-
-.difficulty-filter .btn-outline-secondary:hover {
-  background-color: #3d3d3d;
-  color: #ffffff;
-}
-
+/* Difficulty and Acceptance Styles */
 .text-success {
-  color: #3cb371 !important;
-}
-
+  color: #28a745 !important;
+} /* Bootstrap success green */
 .text-warning {
-  color: #ffa500 !important;
-}
-
+  color: #ffc107 !important;
+} /* Bootstrap warning yellow */
 .text-danger {
   color: #dc3545 !important;
+} /* Bootstrap danger red */
+
+/* Hover Preview Styling */
+.problem-hover-preview {
+  position: absolute;
+  /* Position it relative to the row - adjust as needed */
+  left: 50%; /* Start from the middle of the cell */
+  transform: translateX(-50%) translateY(5px); /* Center horizontally, move down slightly */
+  bottom: 100%; /* Position above the row */
+  margin-bottom: 10px; /* Space between row and preview */
+
+  width: 350px; /* Fixed width for the preview */
+  z-index: 1050; /* Ensure it's above other elements */
+  pointer-events: none; /* Prevent hover preview from blocking clicks on row below */
+
+  /* Use ProblemPreview's styling but add positioning context */
+  opacity: 0; /* Hidden by default */
+  visibility: hidden;
+  transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out;
 }
 
-.table-dark thead th {
-  background-color: #252525;
-  border-top: none;
-}
-
-.table-dark {
-  background-color: #1e1e1e;
-  color: #e0e0e0;
-}
-
-.table-dark.table-hover tbody tr:hover {
-  background-color: #2d2d2d;
+.problem-row:hover .problem-hover-preview {
+  opacity: 1; /* Show on hover */
+  visibility: visible;
 }
