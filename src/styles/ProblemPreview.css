@@ -1,12 +1,13 @@
 .problem-preview-card {
-  background-color: #252525; /* Slightly darker than main container */
+  background-color: #252525;
   color: #e0e0e0;
   border: 1px solid #444;
   border-radius: 6px;
   padding: 1rem 1.2rem;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
-  font-size: 0.9rem; /* Slightly smaller font */
+  font-size: 0.9rem;
   line-height: 1.4;
+  z-index: 1;
 }
 
 .problem-preview-card .preview-header {
@@ -25,8 +26,8 @@
 
 .problem-preview-card .preview-title {
   font-weight: 600;
-  color: #c0c8ff; /* Match link color */
-  flex-grow: 1; /* Take available space */
+  color: #c0c8ff;
+  flex-grow: 1;
   margin-right: 0.5rem;
 }
 
@@ -38,7 +39,6 @@
   white-space: nowrap;
 }
 
-/* Use Bootstrap text colors defined elsewhere */
 .problem-preview-card .text-success {
   background-color: rgba(40, 167, 69, 0.2);
   border: 1px solid rgba(40, 167, 69, 0.5);

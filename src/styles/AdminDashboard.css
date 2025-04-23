@@ -1,6 +1,4 @@
 /* AdminDashboard.css */
-
-/* Button styling for all admin buttons */
 .admin-dashboard .btn {
   font-weight: 600;
   border-radius: 4px;
@@ -23,7 +21,6 @@
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
-/* Tab button styling */
 .admin-dashboard .nav-link {
   font-weight: 600;
   padding: 0.75rem 1.5rem;

@@ -1,44 +1,40 @@
 .code-editor {
-  position: relative; /* Establishes positioning context */
-  height: 100%; /* Fill the wrapper */
-  overflow: hidden; /* Hide container scrollbars */
-  background-color: #1e1e1e; /* Editor background color */
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+  background-color: #1e1e1e;
   font-family: "Fira Code", Consolas, Monaco, "Andale Mono", "Ubuntu Mono",
-    monospace; /* Monospaced font */
-  font-size: 14px; /* Adjust font size */
-  line-height: 1.5; /* Adjust line height */
+    monospace;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
-/* The actual text area (hidden visually but functional) */
 .editor-textarea {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  padding: 10px; /* Match pre padding */
+  padding: 10px;
   margin: 0;
   border: none;
   outline: none;
   resize: none;
 
-  /* Make text transparent, caret visible */
   color: transparent;
   background-color: transparent;
-  caret-color: white; /* Cursor color */
+  caret-color: white;
 
-  /* Font settings must match the <pre> exactly */
   font-family: inherit;
   font-size: inherit;
   line-height: inherit;
-  tab-size: 2; /* Match tab size if using tabs */
-  white-space: pre; /* Preserve whitespace like <pre> */
-  overflow-wrap: normal; /* Prevent wrapping */
-  overflow: auto; /* Allow scrolling */
-  z-index: 1; /* Above the preview */
+  tab-size: 2;
+  white-space: pre;
+  overflow-wrap: normal;
+  overflow: auto;
+  z-index: 1;
 }
 
-/* The <pre> element for displaying highlighted code */
 .editor-preview {
   position: absolute;
   top: 0;

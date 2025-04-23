@@ -1,34 +1,34 @@
 .problems-container {
-  background-color: #1e1e1e; /* Dark background for the container */
+  background-color: #1e1e1e;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-  padding: 1.5rem 2rem; /* More padding */
-  border: 1px solid #333; /* Subtle border */
+  padding: 1.5rem 2rem;
+  border: 1px solid #333;
 }
 
 .problems-container h2 {
-  font-weight: 300; /* Lighter heading */
+  font-weight: 300;
 }
 
 .table-dark {
-  background-color: transparent; /* Let container background show */
+  background-color: transparent;
   color: #e0e0e0;
-  border-color: #444; /* Border color for table */
+  border-color: #444;
 }
 
 .table-dark th {
-  background-color: #252525; /* Slightly darker header */
+  background-color: #252525;
   border-top: none;
-  border-bottom: 2px solid #444; /* Stronger bottom border for header */
-  color: #b0b0b0; /* Lighter header text */
+  border-bottom: 2px solid #444;
+  color: #b0b0b0;
   font-weight: 500;
-  white-space: nowrap; /* Prevent header text wrapping */
+  white-space: nowrap;
 }
 
 .table-dark td {
-  border-color: #333; /* Lighter border for cells */
-  padding: 0.8rem 1rem; /* Adjust cell padding */
-  vertical-align: middle; /* Align content vertically */
+  border-color: #333;
+  padding: 0.8rem 1rem;
+  vertical-align: middle;
 }
 
 .problem-row {
@@ -73,7 +73,7 @@
   margin-bottom: 10px; /* Space between row and preview */
 
   width: 350px; /* Fixed width for the preview */
-  z-index: 1050; /* Ensure it's above other elements */
+  z-index: 1050;
   pointer-events: none; /* Prevent hover preview from blocking clicks on row below */
 
   /* Use ProblemPreview's styling but add positioning context */

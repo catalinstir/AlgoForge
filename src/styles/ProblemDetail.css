@@ -1,26 +1,22 @@
 .problem-detail-container {
-  /* Container for the entire page, takes full height potentially */
   display: flex;
-  flex-direction: column; /* Or row depending on overall layout */
-  height: calc(
-    100vh - 60px
-  ); /* Full viewport height minus navbar height (adjust navbar height) */
-  overflow: hidden; /* Prevent scrolling on the main container */
-  background-color: #1e1e1e; /* Match problems list background */
+  flex-direction: column;
+  height: calc(100vh - 60px);
+  overflow: hidden;
+  background-color: #1e1e1e;
 }
 
 .problem-detail-container .row {
-  height: 100%; /* Make row take full height of container */
-  flex-grow: 1; /* Allow row to grow */
+  height: 100%;
+  flex-grow: 1;
 }
 
-/* Panes Styling */
 .editor-pane,
 .description-pane {
-  height: 100%; /* Make panes take full height of the row */
+  height: 100%;
   display: flex;
   flex-direction: column;
-  overflow-y: hidden; /* Hide direct scrollbar, manage scrolling internally */
+  overflow-y: hidden;
 }
 
 .description-pane {
