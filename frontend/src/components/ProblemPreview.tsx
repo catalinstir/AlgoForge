@@ -21,7 +21,6 @@ const ProblemPreview = ({ problem }: ProblemPreviewProps) => {
     }
   };
 
-  // Ensure description exists before trying to access length or substring
   const descriptionPreview = problem.description
     ? problem.description.length > 150
       ? problem.description.substring(0, 150) + "..."

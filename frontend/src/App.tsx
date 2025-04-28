@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   BrowserRouter as Router,
   Route,
@@ -15,14 +15,17 @@ import Profile from "./pages/profile/Profile";
 import Forums from "./pages/forums/Forums";
 import Browse from "./pages/browse/Browse";
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import apiClient from "./services/api";
 
 export type UserRole = "guest" | "user" | "admin";
 
-export interface User {
+export interface User 
+{  id: string; // Or number, depending on _id type
   username: string;
+  email: string;
   role: UserRole;
-  problemsSolved: number;
-  totalProblems: number;
+  problemsSolved?: number;
+  totalProblems?: number;
 }
 
 export interface Problem {
@@ -72,60 +75,108 @@ const BackgroundManager = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-const App = () => {
+const AppContent = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
 
-  useEffect(() => {
-    const savedUser = localStorage.getItem("currentUser");
-    if (savedUser) {
-      try {
-        const parsedUser = JSON.parse(savedUser);
-        if (
-          parsedUser &&
-          typeof parsedUser.username === "string" &&
-          typeof parsedUser.role === "string"
-        ) {
-          setCurrentUser(parsedUser);
-          setIsLoggedIn(true);
-        } else {
-          console.error("Invalid user data found in localStorage");
-          localStorage.removeItem("currentUser");
-        }
-      } catch (error) {
-        console.error("Failed to parse user data from localStorage", error);
-        localStorage.removeItem("currentUser");
-      }
+  const fetchUserData = useCallback(async () => {
+    console.log("Attempting to fetch user data...");
+    try {
+      const response = await apiClient.get<User>("/users/me");
+      console.log("User data fetched successfully:", response.data);
+      setCurrentUser(response.data);
+      setIsLoggedIn(true);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch user data:", error);
+      localStorage.removeItem("authToken");
+      setIsLoggedIn(false);
+      setCurrentUser(null);
+      return null;
     }
   }, []);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const token = localStorage.getItem("authToken");
+      if (token) {
+        console.log("Token found in localStorage, verifying...");
+        await fetchUserData();
+      } else {
+        console.log("No token found in localStorage.");
+        setIsLoggedIn(false);
+        setCurrentUser(null);
+      }
+      setIsLoading(false);
+    };
+    checkAuth();
+  }, [fetchUserData]);
 
   const handleLoginClick = () => {
     navigate("/login");
   };
 
-  const handleLoginSuccess = (username: string, role: UserRole = "user") => {
-    const newUser: User = {
-      username,
-      role,
-      problemsSolved: Math.floor(Math.random() * 5) + 1,
-      totalProblems: 10,
-    };
-
-    setCurrentUser(newUser);
-    setIsLoggedIn(true);
-
-    try {
-      localStorage.setItem("currentUser", JSON.stringify(newUser));
-    } catch (error) {
-      console.error("Failed to save user data to localStorage", error);
+  const handleLoginSuccess = async (token: string) => {
+    console.log("Login successful, storing token...");
+    localStorage.setItem("authToken", token);
+    setIsLoading(true);
+    const userData = await fetchUserData();
+    setIsLoading(false);
+    if (userData) {
+      if (userData.role === "admin") {
+        navigate("/admin");
+      } else {
+        const from = location.state?.from?.pathname || "/problems";
+        navigate(from, { replace: true });
+      }
+    } else {
+      setError("Login succeeded but failed to load user details.");
+      handleLogout();
     }
   };
 
   const handleLogout = () => {
+    console.log("Logging out...");
+    localStorage.removeItem("authToken");
     setIsLoggedIn(false);
     setCurrentUser(null);
-    localStorage.removeItem("currentUser");
+    navigate("/login");
+  };
+
+  if (isLoading) {
+    return (
+      <div
+        className="app-container d-flex justify-content-center align-items-center"
+        style={{ height: "100vh", backgroundColor: "#212529" }}
+      >
+        <div className="spinner-border text-light" role="status"> linux
+          <span className="visually-hidden">Loading...</span>
+        </div>
+      </div>
+    );
+  }
+
+  interface ProtectedRouteProps {
+    children: React.ReactElement;
+    roleRequired?: UserRole;
+  }
+  const ProtectedRoute = ({ children, roleRequired }: ProtectedRouteProps) => {
+    if (!isLoggedIn) {
+      return <Navigate to="/login" state={{ from: location }} replace />;
+    }
+
+    if (roleRequired && currentUser?.role !== roleRequired) {
+      console.warn(
+        `Access denied for ${currentUser?.username} to route requiring role: ${roleRequired}. Current role: ${currentUser?.role}`
+      );
+      return <Navigate to="/problems" replace />;
+    }
+
+    return children;
   };
 
   return (
@@ -139,6 +190,12 @@ const App = () => {
             onLogout={handleLogout}
           />
 
+          {error && (
+            <div className="alert alert-danger m-3" role="alert">
+              {error}
+            </div>
+          )}
+
           <Routes>
             <Route path="/" element={<Navigate to="/problems" />} />
 
@@ -150,12 +207,10 @@ const App = () => {
                 </div>
               }
             />
-
             <Route
               path="/problem/:problemId"
               element={<ProblemDetails currentUser={currentUser} />}
             />
-
             <Route
               path="/browse"
               element={
@@ -164,53 +219,12 @@ const App = () => {
                 </div>
               }
             />
-
             <Route
               path="/forums"
               element={
                 <div className="container main-content p-4">
                   <Forums />
                 </div>
-              }
-            />
-
-            <Route
-              path="/profile"
-              element={
-                isLoggedIn ? (
-                  <div className="container main-content p-4">
-                    <Profile user={currentUser} />
-                  </div>
-                ) : (
-                  <Navigate to="/" />
-                )
-              }
-            />
-
-            <Route
-              path="/settings"
-              element={
-                isLoggedIn ? (
-                  <div className="container main-content p-4 text-light">
-                    <h2>Settings</h2>
-                    <p>Settings page content goes here.</p>
-                  </div>
-                ) : (
-                  <Navigate to="/" />
-                )
-              }
-            />
-
-            <Route
-              path="/admin"
-              element={
-                isLoggedIn && currentUser?.role === "admin" ? (
-                  <div className="container main-content p-4">
-                    <AdminDashboard currentUser={currentUser} />
-                  </div>
-                ) : (
-                  <Navigate to="/problems" />
-                )
               }
             />
 
@@ -227,6 +241,40 @@ const App = () => {
               }
             />
 
+            {/* Protected Routes */}
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <div className="container main-content p-4">
+                    <Profile user={currentUser} />
+                  </div>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute>
+                  <div className="container main-content p-4 text-light">
+                    <h2>Settings</h2>
+                    <p>Settings page content goes here.</p>
+                  </div>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute roleRequired="admin">
+                  <div className="container main-content p-4">
+                    <AdminDashboard currentUser={currentUser} />
+                  </div>
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Catch-all */}
             <Route path="*" element={<Navigate to="/problems" />} />
           </Routes>
         </div>
@@ -235,4 +283,10 @@ const App = () => {
   );
 };
 
-export default App;
+const App = () => (
+  // <Router>
+  <AppContent />
+  // </Router>
+);
+
+export default AppContent;

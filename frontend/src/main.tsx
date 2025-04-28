@@ -14,7 +14,7 @@ import "./styles/CodeEditor.css";
 import "./styles/ProblemPreview.css";
 import "./styles/AdminDashboard.css";
 
-import App from "./App.tsx";
+import AppContent from "./App.tsx";
 
 const container = document.getElementById("root");
 
@@ -22,7 +22,7 @@ if (container) {
   const root = createRoot(container);
   root.render(
     <BrowserRouter>
-      <App />
+      <AppContent />
     </BrowserRouter>
   );
 } else {
