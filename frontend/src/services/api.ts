@@ -15,18 +15,14 @@ import {
   UserRoleUpdateData
 } from './api.types';
 
-// Import environment configuration
-import { env } from '../config/env';
-
 // Define the base URL for your backend API
-const API_BASE_URL = env.API_URL;
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'; // Removed /api
 
-const apiClient: AxiosInstance = axios.create({
+const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true, // Include cookies in requests
 });
 
 // Add a request interceptor to include the token in headers

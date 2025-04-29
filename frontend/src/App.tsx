@@ -6,6 +6,7 @@ import {
   useLocation,
   useNavigate,
 } from "react-router-dom";
+import axios from "axios";
 import Login from "./pages/login/Login";
 import Navbar from "./components/Navbar";
 import ProblemList from "./components/ProblemList";
@@ -14,7 +15,7 @@ import Profile from "./pages/profile/Profile";
 import Forums from "./pages/forums/Forums";
 import Browse from "./pages/browse/Browse";
 import AdminDashboard from "./pages/admin/AdminDashboard";
-import { authAPI } from "./services/api";
+import apiClient from "./services/api";
 import { User, UserRole } from "./types";
 
 const BackgroundManager = ({ children }: { children: React.ReactNode }) => {
@@ -56,13 +57,17 @@ const AppContent = () => {
   const fetchUserData = useCallback(async () => {
     console.log("Attempting to fetch user data...");
     try {
-      const response = await authAPI.getMe();
+      const response = await apiClient.get<User>("/api/users/me");
       console.log("User data fetched successfully:", response.data);
       setCurrentUser(response.data);
       setIsLoggedIn(true);
       return response.data;
     } catch (error) {
       console.error("Failed to fetch user data:", error);
+      // Show more detailed error information for debugging
+      if (axios.isAxiosError(error)) {
+        console.error("Error details:", error.response?.data || error.message);
+      }
       localStorage.removeItem("authToken");
       setIsLoggedIn(false);
       setCurrentUser(null);
