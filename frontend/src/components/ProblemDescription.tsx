@@ -1,5 +1,5 @@
 import React from "react";
-import { Problem } from "../App";
+import { Problem } from "../types";
 
 interface ProblemDescriptionProps {
   problem: Problem;

@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, NavLink } from "react-router-dom"; // Use NavLink for active styling
-import { User } from "../App"; // Import User type
+import { User } from "../types"; // Import from types.ts
 
 interface NavbarProps {
   isLoggedIn: boolean;
@@ -84,7 +84,8 @@ const Navbar = ({
                   <span className="me-2">{currentUser.username}</span>
                   {/* Progress Badge */}
                   <span className="badge bg-primary me-1">
-                    {currentUser.problemsSolved}/{currentUser.totalProblems}
+                    {currentUser.problemsSolvedCount || 0}/
+                    {currentUser.totalProblems || 0}
                   </span>
                   {/* Admin Badge */}
                   {currentUser.role === "admin" && (

@@ -1,8 +1,8 @@
 import React from "react";
-import { Problem } from "../App"; // Import shared Problem type
+import { Problem } from "../types";
 
 interface ProblemPreviewProps {
-  problem: Problem; // Use the shared Problem type
+  problem: Problem;
 }
 
 const ProblemPreview = ({ problem }: ProblemPreviewProps) => {

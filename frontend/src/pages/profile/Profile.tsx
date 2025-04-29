@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { User } from "../../App";
+import { User } from "../../types";
 import { userAPI } from "../../services/api";
 
 interface ProfileProps {

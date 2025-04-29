@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import ProblemPreview from "./ProblemPreview";
-import { Problem } from "../App";
+import { Problem } from "../types";
 import { problemAPI } from "../services/api";
 
 const ProblemList = () => {

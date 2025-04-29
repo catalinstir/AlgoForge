@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
-  BrowserRouter as Router,
   Route,
   Routes,
   Navigate,
@@ -15,37 +14,8 @@ import Profile from "./pages/profile/Profile";
 import Forums from "./pages/forums/Forums";
 import Browse from "./pages/browse/Browse";
 import AdminDashboard from "./pages/admin/AdminDashboard";
-import apiClient from "./services/api";
-
-export type UserRole = "guest" | "user" | "admin";
-
-export interface User {
-  id: string; // Or number, depending on _id type
-  username: string;
-  email: string;
-  role: UserRole;
-  problemsSolved?: number;
-  totalProblems?: number;
-}
-
-export interface Problem {
-  id: number;
-  title: string;
-  difficulty: "Easy" | "Medium" | "Hard";
-  description: string;
-  acceptance?: string;
-  examples?: {
-    input: string;
-    output: string;
-    explanation?: string;
-  }[];
-  constraints?: string[];
-  uploadedBy?: string;
-  functionName?: string;
-  codeTemplates?: {
-    [key: string]: string;
-  };
-}
+import { authAPI } from "./services/api";
+import { User, UserRole } from "./types";
 
 const BackgroundManager = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
@@ -86,7 +56,7 @@ const AppContent = () => {
   const fetchUserData = useCallback(async () => {
     console.log("Attempting to fetch user data...");
     try {
-      const response = await apiClient.get<User>("/users/me");
+      const response = await authAPI.getMe();
       console.log("User data fetched successfully:", response.data);
       setCurrentUser(response.data);
       setIsLoggedIn(true);
@@ -154,8 +124,6 @@ const AppContent = () => {
         style={{ height: "100vh", backgroundColor: "#212529" }}
       >
         <div className="spinner-border text-light" role="status">
-          {" "}
-          linux
           <span className="visually-hidden">Loading...</span>
         </div>
       </div>
@@ -284,11 +252,5 @@ const AppContent = () => {
     </div>
   );
 };
-
-const App = () => (
-  // <Router>
-  <AppContent />
-  // </Router>
-);
 
 export default AppContent;

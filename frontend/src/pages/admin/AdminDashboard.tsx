@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { User } from "../../App"; // Import User type
+import { User } from "../../types";
 
 interface AdminDashboardProps {
   currentUser: User | null;

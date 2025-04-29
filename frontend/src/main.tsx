@@ -5,7 +5,10 @@ import { BrowserRouter } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
 
-import "prismjs/themes/prism-tomorrow.css";
+import "prismjs/themes/prism-okaidia.css";
+import { initPrism } from "./utils/prism-config";
+
+initPrism();
 
 import "./styles/App.css";
 import "./styles/ProblemList.css";

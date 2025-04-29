@@ -1,4 +1,0 @@
-
-(nemo:53189): Gtk-WARNING **: 23:29:27.055: Failed to register client: GDBus.Error:org.gnome.SessionManager.AlreadyRegistered: Unable to register client
-
-(nemo:53311): Gtk-WARNING **: 23:29:42.904: Failed to register client: GDBus.Error:org.gnome.SessionManager.AlreadyRegistered: Unable to register client

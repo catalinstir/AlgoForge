@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import CodeEditor from "../../components/CodeEditor";
 import ProblemDescription from "../../components/ProblemDescription";
-import { User, Problem } from "../../App";
+import { User, Problem } from "../../types";
 import { problemAPI, submissionAPI } from "../../services/api";
 
 interface ProblemDetailsProps {
