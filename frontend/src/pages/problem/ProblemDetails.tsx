@@ -102,6 +102,7 @@ const ProblemDetails = ({ currentUser }: ProblemDetailsProps) => {
     setSubmissionResult(null);
 
     try {
+      const problemId = problem._id || problem.id?.toString() || "";
       const response = await submissionAPI.runCode({
         problemId: problem._id || problemId,
         code,
@@ -157,7 +158,10 @@ const ProblemDetails = ({ currentUser }: ProblemDetailsProps) => {
 
     try {
       const response = await submissionAPI.submitSolution({
-        problemId: problem._id || problemId,
+        problemId:
+          typeof problem._id === "string"
+            ? problem._id
+            : problem.id?.toString() || "",
         code,
         language: selectedLanguage,
       });

@@ -157,9 +157,11 @@ const ProblemList = () => {
             {problems.length > 0 ? (
               problems.map((problem) => (
                 <tr
-                  key={problem.id}
+                  key={problem.id || problem._id}
                   className="problem-row"
-                  onMouseEnter={() => setHoveredProblemId(problem.id)}
+                  onMouseEnter={() =>
+                    problem.id ? setHoveredProblemId(problem.id) : null
+                  }
                   onMouseLeave={() => setHoveredProblemId(null)}
                   style={{ position: "relative" }}
                 >

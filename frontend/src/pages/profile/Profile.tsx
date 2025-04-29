@@ -11,6 +11,7 @@ interface UserStats {
     totalProblems: number;
     problemsSolvedCount: number;
     problemsAttemptedCount: number;
+    createdAt?: string;
   };
   statistics: {
     problems: {

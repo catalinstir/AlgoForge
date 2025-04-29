@@ -202,8 +202,10 @@ public:
 ];
 
 // Connect to MongoDB
+const MONGO_URI = "mongodb://localhost:27017/algoforge";
+
 mongoose
-  .connect(process.env.MONGO_URI)
+  .connect(MONGO_URI)
   .then(() => console.log("Connected to MongoDB"))
   .catch((err) => {
     console.error("Failed to connect to MongoDB", err);

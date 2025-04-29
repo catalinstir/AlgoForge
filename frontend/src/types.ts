@@ -23,7 +23,7 @@ export interface User {
 
 export interface Problem {
   _id: string;
-  id?: number; // For backward compatibility with mock data
+  id?: number;
   title: string;
   difficulty: "Easy" | "Medium" | "Hard";
   description: string;

@@ -21,7 +21,7 @@ interface TestCase {
 const ProblemUploadForm = ({ onSuccess }: ProblemUploadFormProps) => {
   const [formData, setFormData] = useState({
     title: "",
-    difficulty: "Medium",
+    difficulty: "Medium" as "Easy" | "Medium" | "Hard",
     description: "",
     functionName: "",
     categories: [] as string[],
@@ -84,6 +84,13 @@ const ProblemUploadForm = ({ onSuccess }: ProblemUploadFormProps) => {
     const updatedConstraints = [...constraints];
     updatedConstraints[index] = value;
     setConstraints(updatedConstraints);
+  };
+
+  const handleDifficultyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    if (value === "Easy" || value === "Medium" || value === "Hard") {
+      setFormData((prev) => ({ ...prev, difficulty: value }));
+    }
   };
 
   const addConstraint = () => {
@@ -379,7 +386,7 @@ const ProblemUploadForm = ({ onSuccess }: ProblemUploadFormProps) => {
                     id="difficulty"
                     name="difficulty"
                     value={formData.difficulty}
-                    onChange={handleChange}
+                    onChange={(e) => handleDifficultyChange(e)}
                     required
                   >
                     <option value="Easy">Easy</option>

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { UserRole } from "../../App";
+import UserRole from "../../App";
 import apiClient from "../../services/api";
 import axios from "axios";
 import { AxiosError } from "axios";

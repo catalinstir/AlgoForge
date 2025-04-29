@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { submissionAPI, problemAPI } from "../../services/api";
+import { submissionAPI, problemAPI } from "../services/api";
 
 interface Submission {
   _id: string;
@@ -19,6 +19,7 @@ interface Problem {
   _id: string;
   title: string;
   difficulty: string;
+  acceptance: string;
 }
 
 interface PaginationInfo {
