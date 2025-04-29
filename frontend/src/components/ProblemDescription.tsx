@@ -1,8 +1,7 @@
 import React from "react";
-import { Problem } from "../App"; // Import shared Problem type
+import { Problem } from "../App";
 
 interface ProblemDescriptionProps {
-  // Ensure the problem prop matches the detailed Problem type
   problem: Problem;
 }
 
@@ -22,9 +21,7 @@ const ProblemDescription = ({ problem }: ProblemDescriptionProps) => {
     }
   };
 
-  // Basic Markdown-like rendering for paragraphs
   const renderDescription = (text: string) => {
-    // Split by double newline for paragraphs, trim whitespace
     return text.split(/\n\s*\n/).map((paragraph, index) => (
       <p key={index} className="mb-3">
         {paragraph.trim()}
@@ -32,7 +29,6 @@ const ProblemDescription = ({ problem }: ProblemDescriptionProps) => {
     ));
   };
 
-  // Render constraints as a list
   const renderConstraints = (constraints: string[]) => {
     return (
       <ul className="list-unstyled">
@@ -45,32 +41,50 @@ const ProblemDescription = ({ problem }: ProblemDescriptionProps) => {
     );
   };
 
+  // Format the author's username
+  const formatAuthor = (author: any) => {
+    if (!author) return "AlgoRush";
+    if (typeof author === "string") return author;
+    if (author.username) return author.username;
+    return "Unknown";
+  };
+
   return (
-    // Added padding and scroll handling if needed
     <div className="problem-description-container p-3">
-      {/* Problem Header */}
       <div className="problem-header mb-4">
         <h2 className="problem-title mb-1">
-          {problem.id}. {problem.title}
+          {problem._id ? problem._id.substring(0, 5) : "#"}. {problem.title}
         </h2>
-        <span
-          className={`problem-difficulty badge ${getDifficultyColorClass(
-            problem.difficulty
-          )}`}
-        >
-          {problem.difficulty}
-        </span>
+        <div className="d-flex gap-2 align-items-center mt-2">
+          <span
+            className={`problem-difficulty badge ${getDifficultyColorClass(
+              problem.difficulty
+            )}`}
+          >
+            {problem.difficulty}
+          </span>
+          {problem.acceptance && (
+            <span className="problem-acceptance badge bg-secondary">
+              Acceptance: {problem.acceptance}
+            </span>
+          )}
+          {problem.categories && problem.categories.length > 0 && (
+            <div className="ms-2">
+              {problem.categories.map((category, index) => (
+                <span key={index} className="badge bg-info me-1">
+                  {category}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Problem Content */}
       <div className="problem-content">
-        {/* Description Section */}
         <div className="description-section mb-4">
-          {/* Render description using the helper function */}
           {renderDescription(problem.description)}
         </div>
 
-        {/* Examples Section */}
         {problem.examples && problem.examples.length > 0 && (
           <div className="examples-section mb-4">
             <h5 className="mb-3">Examples</h5>
@@ -98,7 +112,6 @@ const ProblemDescription = ({ problem }: ProblemDescriptionProps) => {
           </div>
         )}
 
-        {/* Constraints Section */}
         {problem.constraints && problem.constraints.length > 0 && (
           <div className="constraints-section mb-4">
             <h5 className="mb-3">Constraints</h5>
@@ -106,18 +119,35 @@ const ProblemDescription = ({ problem }: ProblemDescriptionProps) => {
           </div>
         )}
 
-        {/* Metadata Section */}
-        {problem.uploadedBy && (
-          <div className="metadata-section mt-4 pt-3 border-top border-secondary">
-            <p className="uploaded-by text-muted small">
-              Contributed by:{" "}
-              <span className="contributor fw-bold">{problem.uploadedBy}</span>
-            </p>
+        {problem.functionName && (
+          <div className="function-section mb-4">
+            <h5 className="mb-3">Function Definition</h5>
+            <div className="bg-dark p-3 rounded">
+              <code>{selectedLanguageGuide(problem.functionName)}</code>
+            </div>
           </div>
         )}
+
+        <div className="metadata-section mt-4 pt-3 border-top border-secondary">
+          <p className="uploaded-by text-muted small">
+            Contributed by:{" "}
+            <span className="contributor fw-bold">
+              {formatAuthor(problem.author)}
+            </span>
+            {problem.publishedDate && (
+              <span className="ms-2">
+                on {new Date(problem.publishedDate).toLocaleDateString()}
+              </span>
+            )}
+          </p>
+        </div>
       </div>
     </div>
   );
+};
+
+const selectedLanguageGuide = (functionName: string) => {
+  return `Implement the '${functionName}' function according to the problem description.\nMake sure your solution passes all test cases.`;
 };
 
 export default ProblemDescription;

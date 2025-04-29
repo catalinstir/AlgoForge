@@ -1,103 +1,53 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import ProblemPreview from "./ProblemPreview"; // Import ProblemPreview
-import { Problem } from "../App"; // Import the shared Problem type
-
-// Mock data for problems (replace with actual API call later)
-const mockProblems: Problem[] = [
-  {
-    id: 1,
-    title: "Two Sum",
-    difficulty: "Easy",
-    description:
-      "Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.",
-    acceptance: "47.5%",
-  },
-  {
-    id: 2,
-    title: "Add Two Numbers",
-    difficulty: "Medium",
-    description:
-      "You are given two non-empty linked lists representing two non-negative integers.",
-    acceptance: "38.2%",
-  },
-  {
-    id: 3,
-    title: "Longest Substring Without Repeating Characters",
-    difficulty: "Medium",
-    description:
-      "Given a string s, find the length of the longest substring without repeating characters.",
-    acceptance: "33.1%",
-  },
-  {
-    id: 4,
-    title: "Median of Two Sorted Arrays",
-    difficulty: "Hard",
-    description:
-      "Given two sorted arrays nums1 and nums2 of size m and n respectively, return the median of the two sorted arrays.",
-    acceptance: "34.0%",
-  },
-  {
-    id: 5,
-    title: "Longest Palindromic Substring",
-    difficulty: "Medium",
-    description:
-      "Given a string s, return the longest palindromic substring in s.",
-    acceptance: "30.5%",
-  },
-  {
-    id: 6,
-    title: "Zigzag Conversion",
-    difficulty: "Medium",
-    description:
-      'The string "PAYPALISHIRING" is written in a zigzag pattern...',
-    acceptance: "40.1%",
-  },
-  {
-    id: 7,
-    title: "Reverse Integer",
-    difficulty: "Easy",
-    description:
-      "Given a signed 32-bit integer x, return x with its digits reversed.",
-    acceptance: "27.3%",
-  },
-  {
-    id: 8,
-    title: "String to Integer (atoi)",
-    difficulty: "Medium",
-    description:
-      "Implement the myAtoi(string s) function, which converts a string to a 32-bit signed integer.",
-    acceptance: "16.2%",
-  },
-  {
-    id: 9,
-    title: "Palindrome Number",
-    difficulty: "Easy",
-    description: "Given an integer x, return true if x is palindrome integer.",
-    acceptance: "51.9%",
-  },
-  {
-    id: 10,
-    title: "Regular Expression Matching",
-    difficulty: "Hard",
-    description:
-      "Given an input string (s) and a pattern (p), implement regular expression matching with support for '.' and '*'.",
-    acceptance: "28.0%",
-  },
-];
+import ProblemPreview from "./ProblemPreview";
+import { Problem } from "../App";
+import { problemAPI } from "../services/api";
 
 const ProblemList = () => {
   const [problems, setProblems] = useState<Problem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [hoveredProblemId, setHoveredProblemId] = useState<number | null>(null);
+  const [filter, setFilter] = useState({
+    difficulty: "",
+    search: "",
+    category: "",
+  });
 
   useEffect(() => {
-    // Simulate fetching data
-    setTimeout(() => {
-      setProblems(mockProblems);
+    fetchProblems();
+  }, [filter]);
+
+  const fetchProblems = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const params: any = {};
+      if (filter.difficulty) params.difficulty = filter.difficulty;
+      if (filter.search) params.search = filter.search;
+      if (filter.category) params.category = filter.category;
+
+      const response = await problemAPI.getAllProblems(params);
+      setProblems(response.data);
+    } catch (err) {
+      console.error("Error fetching problems:", err);
+      setError("Failed to load problems. Please try again later.");
+    } finally {
       setLoading(false);
-    }, 500); // Simulate network delay
-  }, []);
+    }
+  };
+
+  const handleFilterChange = (
+    e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>
+  ) => {
+    const { name, value } = e.target;
+    setFilter((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+  };
 
   const getDifficultyColorClass = (
     difficulty: "Easy" | "Medium" | "Hard"
@@ -114,16 +64,85 @@ const ProblemList = () => {
     }
   };
 
-  if (loading) {
+  if (loading && problems.length === 0) {
     return (
-      <div className="text-center text-light p-5">Loading problems...</div>
+      <div className="text-center text-light p-5">
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Loading problems...</span>
+        </div>
+        <p className="mt-3">Loading problems...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="alert alert-danger p-3" role="alert">
+        <h4 className="alert-heading">Error</h4>
+        <p>{error}</p>
+        <hr />
+        <button className="btn btn-outline-danger" onClick={fetchProblems}>
+          Try Again
+        </button>
+      </div>
     );
   }
 
   return (
     <div className="problems-container">
       <h2 className="text-light mb-4">Problems</h2>
-      {/* Optional: Add filters for difficulty, status, search here */}
+
+      <div className="row mb-4">
+        <div className="col-md-3">
+          <select
+            className="form-select bg-dark text-light border-secondary"
+            name="difficulty"
+            value={filter.difficulty}
+            onChange={handleFilterChange}
+            aria-label="Filter by difficulty"
+          >
+            <option value="">All Difficulties</option>
+            <option value="Easy">Easy</option>
+            <option value="Medium">Medium</option>
+            <option value="Hard">Hard</option>
+          </select>
+        </div>
+        <div className="col-md-3">
+          <select
+            className="form-select bg-dark text-light border-secondary"
+            name="category"
+            value={filter.category}
+            onChange={handleFilterChange}
+            aria-label="Filter by category"
+          >
+            <option value="">All Categories</option>
+            <option value="Arrays">Arrays</option>
+            <option value="Strings">Strings</option>
+            <option value="Linked Lists">Linked Lists</option>
+            <option value="Trees">Trees</option>
+            <option value="Dynamic Programming">Dynamic Programming</option>
+          </select>
+        </div>
+        <div className="col-md-6">
+          <form onSubmit={handleSearchSubmit}>
+            <div className="input-group">
+              <input
+                type="text"
+                className="form-control bg-dark text-light border-secondary"
+                placeholder="Search problems..."
+                name="search"
+                value={filter.search}
+                onChange={handleFilterChange}
+                aria-label="Search problems"
+              />
+              <button className="btn btn-primary" type="submit">
+                <i className="bi bi-search"></i> Search
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
       <div className="table-responsive">
         <table className="table table-dark table-hover align-middle">
           <thead>
@@ -132,41 +151,49 @@ const ProblemList = () => {
               <th scope="col">Title</th>
               <th scope="col">Difficulty</th>
               <th scope="col">Acceptance</th>
-              {/* Add more columns like Status if needed */}
             </tr>
           </thead>
           <tbody>
-            {problems.map((problem) => (
-              <tr
-                key={problem.id}
-                className="problem-row"
-                onMouseEnter={() => setHoveredProblemId(problem.id)}
-                onMouseLeave={() => setHoveredProblemId(null)}
-                style={{ position: "relative" }} // Needed for absolute positioning of preview
-              >
-                <td>{problem.id}</td>
-                <td>
-                  <Link
-                    to={`/problem/${problem.id}`}
-                    className="problem-title-link"
-                  >
-                    {problem.title}
-                  </Link>
-                  {/* Hover Preview - Absolutely Positioned */}
-                  {hoveredProblemId === problem.id && (
-                    <div className="problem-hover-preview">
-                      <ProblemPreview problem={problem} />
-                    </div>
-                  )}
+            {problems.length > 0 ? (
+              problems.map((problem) => (
+                <tr
+                  key={problem.id}
+                  className="problem-row"
+                  onMouseEnter={() => setHoveredProblemId(problem.id)}
+                  onMouseLeave={() => setHoveredProblemId(null)}
+                  style={{ position: "relative" }}
+                >
+                  <td>{problem.id}</td>
+                  <td>
+                    <Link
+                      to={`/problem/${problem.id}`}
+                      className="problem-title-link"
+                    >
+                      {problem.title}
+                    </Link>
+                    {hoveredProblemId === problem.id && (
+                      <div className="problem-hover-preview">
+                        <ProblemPreview problem={problem} />
+                      </div>
+                    )}
+                  </td>
+                  <td>
+                    <span
+                      className={getDifficultyColorClass(problem.difficulty)}
+                    >
+                      {problem.difficulty}
+                    </span>
+                  </td>
+                  <td>{problem.acceptance || "N/A"}</td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={4} className="text-center py-4">
+                  No problems found. Try adjusting your filters.
                 </td>
-                <td>
-                  <span className={getDifficultyColorClass(problem.difficulty)}>
-                    {problem.difficulty}
-                  </span>
-                </td>
-                <td>{problem.acceptance || "N/A"}</td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>

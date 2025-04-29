@@ -19,8 +19,8 @@ import apiClient from "./services/api";
 
 export type UserRole = "guest" | "user" | "admin";
 
-export interface User 
-{  id: string; // Or number, depending on _id type
+export interface User {
+  id: string; // Or number, depending on _id type
   username: string;
   email: string;
   role: UserRole;
@@ -153,7 +153,9 @@ const AppContent = () => {
         className="app-container d-flex justify-content-center align-items-center"
         style={{ height: "100vh", backgroundColor: "#212529" }}
       >
-        <div className="spinner-border text-light" role="status"> linux
+        <div className="spinner-border text-light" role="status">
+          {" "}
+          linux
           <span className="visually-hidden">Loading...</span>
         </div>
       </div>
