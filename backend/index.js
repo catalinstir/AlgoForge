@@ -27,6 +27,14 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Add request logger middleware in development
+if (process.env.NODE_ENV !== "production") {
+  app.use((req, res, next) => {
+    console.log(`${req.method} ${req.url}`);
+    next();
+  });
+}
+
 // API Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
@@ -34,9 +42,18 @@ app.use("/api/problems", problemRoutes);
 app.use("/api/submissions", submissionRoutes);
 app.use("/api/problem-requests", problemRequestRoutes);
 
+// Simple route for checking if the server is running
+app.get("/api/health", (req, res) => {
+  res.json({
+    status: "ok",
+    message: "Server is running",
+    timestamp: new Date(),
+  });
+});
+
 // Global error handler
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  console.error("Global error handler caught:", err.stack);
   res.status(500).json({
     error: "Something went wrong on the server.",
     message: process.env.NODE_ENV === "development" ? err.message : null,
@@ -52,6 +69,20 @@ if (process.env.NODE_ENV === "production") {
   app.get("*", (req, res) => {
     res.sendFile(path.join(__dirname, "../frontend/dist/index.html"));
   });
+} else {
+  // Development route catch-all to help identify mistyped routes
+  app.use((req, res) => {
+    res.status(404).json({
+      error: `Route not found: ${req.method} ${req.url}`,
+      availableRoutes: [
+        "/api/auth/*",
+        "/api/users/*",
+        "/api/problems/*",
+        "/api/submissions/*",
+        "/api/problem-requests/*",
+      ],
+    });
+  });
 }
 
 // Connect to MongoDB and start server
@@ -64,9 +95,12 @@ mongoose
     useUnifiedTopology: true,
   })
   .then(() => {
+    console.log(`MongoDB connected: ${mongoose.connection.host}`);
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
-      console.log(`MongoDB connected: ${mongoose.connection.host}`);
+      if (process.env.NODE_ENV !== "production") {
+        console.log(`API available at http://localhost:${PORT}/api`);
+      }
     });
   })
   .catch((err) => {

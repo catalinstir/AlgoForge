@@ -1,8 +1,6 @@
 import React, { useState } from "react";
-import UserRole from "../../App";
-import apiClient from "../../services/api";
+import { authAPI } from "../../services/api";
 import axios from "axios";
-import { AxiosError } from "axios";
 
 interface LoginProps {
   onLoginSuccess: (token: string) => void;
@@ -41,23 +39,28 @@ const Login = ({ onLoginSuccess }: LoginProps) => {
     try {
       if (isLogin) {
         console.log("Attempting login with:", { email, password });
-        const response = await apiClient.post<{ token: string }>(
-          "/auth/login",
-          {
-            email,
-            password,
-          }
-        );
-        console.log("Login successful, token received.");
+        const response = await authAPI.login({
+          email,
+          password,
+        });
+
+        console.log("Login successful, response:", response.data);
+
+        if (!response.data.token) {
+          throw new Error("No token received from server");
+        }
+
         onLoginSuccess(response.data.token);
       } else {
         console.log("Attempting sign up:", { username, email, password });
-        await apiClient.post("/auth/register", {
+        const response = await authAPI.register({
           username,
           email,
           password,
         });
-        console.log("Signup successful for:", username);
+
+        console.log("Signup successful, response:", response.data);
+
         setError(null);
         alert("Registration successful! Please log in.");
         setIsLogin(true);
@@ -70,21 +73,26 @@ const Login = ({ onLoginSuccess }: LoginProps) => {
       console.error("Authentication error:", err);
       let errorMessage = "An unexpected error occurred.";
       if (axios.isAxiosError(err)) {
-        // Access err.response.data for backend error message
+        // Extract the error message from the response
         errorMessage = err.response?.data?.error || err.message || errorMessage;
+        console.error("Error details:", {
+          status: err.response?.status,
+          data: err.response?.data,
+          headers: err.response?.headers,
+        });
       } else if (err instanceof Error) {
         errorMessage = err.message;
       }
       setError(errorMessage);
     } finally {
-      setLoading(false); // Set loading false
+      setLoading(false);
     }
   };
 
   const toggleMode = () => {
     setIsLogin(!isLogin);
     setUsername("");
-    setEmail(""); // Clear email too
+    setEmail("");
     setPassword("");
     setConfirmPassword("");
     setError(null);

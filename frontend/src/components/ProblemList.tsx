@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import ProblemPreview from "./ProblemPreview";
 import { Problem } from "../types";
 import { problemAPI } from "../services/api";
+import axios from "axios";
 
 const ProblemList = () => {
   const [problems, setProblems] = useState<Problem[]>([]);
@@ -14,6 +15,7 @@ const ProblemList = () => {
     search: "",
     category: "",
   });
+  const [debugInfo, setDebugInfo] = useState<any>(null);
 
   useEffect(() => {
     fetchProblems();
@@ -22,17 +24,52 @@ const ProblemList = () => {
   const fetchProblems = async () => {
     setLoading(true);
     setError(null);
+    setDebugInfo(null);
+
     try {
+      console.log("Fetching problems with filters:", filter);
+
       const params: any = {};
       if (filter.difficulty) params.difficulty = filter.difficulty;
       if (filter.search) params.search = filter.search;
       if (filter.category) params.category = filter.category;
 
       const response = await problemAPI.getAllProblems(params);
-      setProblems(response.data);
+      console.log("Problems API response:", response);
+
+      // Check if the response data is an array
+      if (Array.isArray(response.data)) {
+        setProblems(response.data);
+      } else {
+        console.error("Unexpected response format:", response.data);
+        setDebugInfo({
+          message: "Unexpected response format",
+          data: response.data,
+        });
+        setError(
+          "The server returned data in an unexpected format. See console for details."
+        );
+      }
     } catch (err) {
       console.error("Error fetching problems:", err);
-      setError("Failed to load problems. Please try again later.");
+
+      let errorMessage = "Failed to load problems. Please try again later.";
+      let errorDetails = {};
+
+      if (axios.isAxiosError(err)) {
+        errorMessage = err.response?.data?.error || err.message || errorMessage;
+        errorDetails = {
+          status: err.response?.status,
+          statusText: err.response?.statusText,
+          data: err.response?.data,
+          url: err.config?.url,
+        };
+      } else if (err instanceof Error) {
+        errorMessage = err.message;
+      }
+
+      setError(errorMessage);
+      setDebugInfo(errorDetails);
     } finally {
       setLoading(false);
     }
@@ -47,6 +84,7 @@ const ProblemList = () => {
 
   const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    fetchProblems();
   };
 
   const getDifficultyColorClass = (
@@ -71,19 +109,6 @@ const ProblemList = () => {
           <span className="visually-hidden">Loading problems...</span>
         </div>
         <p className="mt-3">Loading problems...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="alert alert-danger p-3" role="alert">
-        <h4 className="alert-heading">Error</h4>
-        <p>{error}</p>
-        <hr />
-        <button className="btn btn-outline-danger" onClick={fetchProblems}>
-          Try Again
-        </button>
       </div>
     );
   }
@@ -143,6 +168,29 @@ const ProblemList = () => {
         </div>
       </div>
 
+      {error && (
+        <div className="alert alert-danger p-3 mb-4" role="alert">
+          <h4 className="alert-heading">Error</h4>
+          <p>{error}</p>
+
+          {debugInfo && (
+            <div className="mt-3">
+              <details>
+                <summary>Debug Information</summary>
+                <pre className="mt-2" style={{ whiteSpace: "pre-wrap" }}>
+                  {JSON.stringify(debugInfo, null, 2)}
+                </pre>
+              </details>
+            </div>
+          )}
+
+          <hr />
+          <button className="btn btn-outline-danger" onClick={fetchProblems}>
+            Try Again
+          </button>
+        </div>
+      )}
+
       <div className="table-responsive">
         <table className="table table-dark table-hover align-middle">
           <thead>
@@ -192,7 +240,9 @@ const ProblemList = () => {
             ) : (
               <tr>
                 <td colSpan={4} className="text-center py-4">
-                  No problems found. Try adjusting your filters.
+                  {loading
+                    ? "Loading problems..."
+                    : "No problems found. Try adjusting your filters."}
                 </td>
               </tr>
             )}

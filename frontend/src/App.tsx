@@ -15,7 +15,7 @@ import Profile from "./pages/profile/Profile";
 import Forums from "./pages/forums/Forums";
 import Browse from "./pages/browse/Browse";
 import AdminDashboard from "./pages/admin/AdminDashboard";
-import apiClient from "./services/api";
+import apiClient, { userAPI, authAPI } from "./services/api";
 import { User, UserRole } from "./types";
 
 const BackgroundManager = ({ children }: { children: React.ReactNode }) => {
@@ -57,21 +57,44 @@ const AppContent = () => {
   const fetchUserData = useCallback(async () => {
     console.log("Attempting to fetch user data...");
     try {
-      const response = await apiClient.get<User>("/api/users/me");
+      // First try the user endpoint
+      const response = await userAPI.getProfile();
       console.log("User data fetched successfully:", response.data);
       setCurrentUser(response.data);
       setIsLoggedIn(true);
       return response.data;
-    } catch (error) {
-      console.error("Failed to fetch user data:", error);
-      // Show more detailed error information for debugging
-      if (axios.isAxiosError(error)) {
-        console.error("Error details:", error.response?.data || error.message);
+    } catch (userError) {
+      console.error(
+        "Error with user endpoint, trying auth endpoint:",
+        userError
+      );
+
+      // If user endpoint fails, try the auth endpoint
+      try {
+        const authResponse = await authAPI.getMe();
+        console.log("Auth data fetched successfully:", authResponse.data);
+        setCurrentUser(authResponse.data);
+        setIsLoggedIn(true);
+        return authResponse.data;
+      } catch (authError) {
+        console.error(
+          "Failed to fetch user data from both endpoints:",
+          authError
+        );
+
+        // Show more detailed error information for debugging
+        if (axios.isAxiosError(authError)) {
+          console.error(
+            "Auth error details:",
+            authError.response?.data || authError.message
+          );
+        }
+
+        localStorage.removeItem("authToken");
+        setIsLoggedIn(false);
+        setCurrentUser(null);
+        return null;
       }
-      localStorage.removeItem("authToken");
-      setIsLoggedIn(false);
-      setCurrentUser(null);
-      return null;
     }
   }, []);
 
@@ -168,6 +191,12 @@ const AppContent = () => {
           {error && (
             <div className="alert alert-danger m-3" role="alert">
               {error}
+              <button
+                className="btn btn-sm btn-outline-danger ms-3"
+                onClick={() => setError(null)}
+              >
+                Dismiss
+              </button>
             </div>
           )}
 
