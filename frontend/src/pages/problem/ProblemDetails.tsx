@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useLocation } from "react-router-dom";
 import CodeEditor from "../../components/CodeEditor";
 import ProblemDescription from "../../components/ProblemDescription";
 import { User, Problem } from "../../types";
@@ -28,6 +28,7 @@ interface SubmissionResult {
 
 const ProblemDetails = ({ currentUser }: ProblemDetailsProps) => {
   const { problemId } = useParams<{ problemId: string }>();
+  const location = useLocation();
   const [problem, setProblem] = useState<Problem | null>(null);
   const [selectedLanguage, setSelectedLanguage] = useState<string>("cpp");
   const [code, setCode] = useState<string>("");
@@ -40,8 +41,13 @@ const ProblemDetails = ({ currentUser }: ProblemDetailsProps) => {
     useState<SubmissionResult | null>(null);
 
   useEffect(() => {
-    loadProblem();
-  }, [problemId]);
+    if (problemId) {
+      loadProblem();
+    } else {
+      setError("Problem ID is missing from the URL");
+      setLoading(false);
+    }
+  }, [problemId, location]);
 
   const loadProblem = async () => {
     setLoading(true);
@@ -54,20 +60,55 @@ const ProblemDetails = ({ currentUser }: ProblemDetailsProps) => {
         throw new Error("Problem ID is missing");
       }
 
+      // Extract index from URL query parameters if available
+      const searchParams = new URLSearchParams(location.search);
+      const indexParam = searchParams.get("index");
+      const displayIndex = indexParam ? parseInt(indexParam) : undefined;
+
+      console.log(
+        "Fetching problem with ID:",
+        problemId,
+        "Index:",
+        displayIndex
+      );
       const response = await problemAPI.getProblemById(problemId);
+      console.log("Problem API response:", response);
+
       const fetchedProblem = response.data;
+      // Ensure problem has both id and _id available
+      if (fetchedProblem) {
+        fetchedProblem.id = fetchedProblem.id || fetchedProblem._id;
+
+        // Set the displayIndex from URL query parameter if available
+        if (displayIndex !== undefined) {
+          fetchedProblem.displayIndex = displayIndex;
+        }
+        // Otherwise try to extract a number from the problemId
+        else if (fetchedProblem.displayIndex === undefined) {
+          // Try to extract a number from the problemId (if it's a numeric string)
+          const numericId = parseInt(problemId);
+          if (!isNaN(numericId)) {
+            fetchedProblem.displayIndex = numericId;
+          }
+        }
+      }
 
       setProblem(fetchedProblem);
 
-      if (
-        fetchedProblem.codeTemplates &&
-        fetchedProblem.codeTemplates[selectedLanguage]
-      ) {
-        setCode(fetchedProblem.codeTemplates[selectedLanguage]);
+      // Select default language based on available templates
+      if (fetchedProblem.codeTemplates) {
+        const availableLanguages = Object.keys(fetchedProblem.codeTemplates);
+        if (availableLanguages.length > 0) {
+          const defaultLang = availableLanguages.includes("javascript")
+            ? "javascript"
+            : availableLanguages[0];
+          setSelectedLanguage(defaultLang);
+          setCode(fetchedProblem.codeTemplates[defaultLang]);
+        } else {
+          setCode(`// No template available\n// Start coding here`);
+        }
       } else {
-        setCode(
-          `// No template available for ${selectedLanguage}\n// Start coding here`
-        );
+        setCode(`// No template available\n// Start coding here`);
       }
     } catch (err: any) {
       console.error("Error loading problem:", err);
@@ -102,9 +143,15 @@ const ProblemDetails = ({ currentUser }: ProblemDetailsProps) => {
     setSubmissionResult(null);
 
     try {
-      const problemId = problem._id || problem.id?.toString() || "";
+      // Ensure we're using a valid problem ID
+      const validProblemId = problem._id || problem.id;
+
+      if (!validProblemId) {
+        throw new Error("Problem ID is undefined");
+      }
+
       const response = await submissionAPI.runCode({
-        problemId: problem._id || problemId,
+        problemId: validProblemId.toString(),
         code,
         language: selectedLanguage,
       });
@@ -157,11 +204,15 @@ const ProblemDetails = ({ currentUser }: ProblemDetailsProps) => {
     setSubmissionResult(null);
 
     try {
+      // Ensure we're using a valid problem ID
+      const validProblemId = problem._id || problem.id;
+
+      if (!validProblemId) {
+        throw new Error("Problem ID is undefined");
+      }
+
       const response = await submissionAPI.submitSolution({
-        problemId:
-          typeof problem._id === "string"
-            ? problem._id
-            : problem.id?.toString() || "",
+        problemId: validProblemId.toString(),
         code,
         language: selectedLanguage,
       });

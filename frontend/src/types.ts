@@ -1,60 +1,56 @@
-// types.ts - Place this in your src directory
-export type UserRole = "guest" | "user" | "admin";
+// types.ts
+export type UserRole = 'guest' | 'user' | 'admin';
 
 export interface User {
-  _id: string;
-  id?: string; // For backward compatibility
+  id?: string;
+  _id?: string;
   username: string;
   email: string;
   role: UserRole;
-  problemsSolved?: string[]; // Array of problemIds
-  problemsAttempted?: string[]; // Array of problemIds
-  problemsUploaded?: string[]; // Array of problemIds
   problemsSolvedCount?: number;
   problemsAttemptedCount?: number;
   problemsUploadedCount?: number;
   totalProblems?: number;
-  totalSubmissions?: number;
-  successRate?: number;
-  forumLikes?: number;
-  createdAt?: string;
-  lastActive?: string;
+}
+
+export interface Example {
+  input: string;
+  output: string;
+  explanation?: string;
+}
+
+export interface TestCase {
+  input: string;
+  output: string;
+  isHidden?: boolean;
 }
 
 export interface Problem {
-  _id: string;
-  id?: number;
+  id?: string | number;
+  _id?: string;
+  displayIndex?: number;  // Added for showing sequential numbering
   title: string;
-  difficulty: "Easy" | "Medium" | "Hard";
+  difficulty: 'Easy' | 'Medium' | 'Hard';
   description: string;
+  examples: Example[];
+  constraints: string[];
   acceptance?: string;
-  examples?: {
-    input: string;
-    output: string;
-    explanation?: string;
-  }[];
-  constraints?: string[];
-  testCases?: {
-    input: string;
-    output: string;
-    isHidden?: boolean;
-  }[];
-  functionName?: string;
-  categories?: string[];
+  testCases?: TestCase[];
+  functionName: string;
   codeTemplates?: {
     [key: string]: string;
   };
-  author?: string | { _id: string; username: string };
-  status?: "Draft" | "Pending" | "Published" | "Rejected";
+  author?: any;
+  status?: 'Draft' | 'Published' | 'Rejected';
   publishedDate?: string;
-  totalSubmissions?: number;
-  successfulSubmissions?: number;
+  categories?: string[];
 }
 
 export interface Submission {
-  _id: string;
-  user: string | User;
-  problem: string | Problem;
+  id?: string;
+  _id?: string;
+  user: User;
+  problem: Problem;
   code: string;
   language: string;
   status: string;
@@ -62,49 +58,6 @@ export interface Submission {
   memoryUsed: number;
   testCasesPassed: number;
   totalTestCases: number;
-  testResults?: {
-    input: string;
-    expectedOutput: string;
-    actualOutput: string;
-    passed: boolean;
-    hidden?: boolean;
-  }[];
-  errorMessage?: string;
   createdAt: string;
-  updatedAt: string;
-}
-
-export interface ProblemRequest {
-  _id: string;
-  submitter: string | User;
-  title: string;
-  difficulty: "Easy" | "Medium" | "Hard";
-  description: string;
-  examples: {
-    input: string;
-    output: string;
-    explanation?: string;
-  }[];
-  constraints: string[];
-  testCases: {
-    input: string;
-    output: string;
-    isHidden?: boolean;
-  }[];
-  functionName: string;
-  codeTemplates: {
-    [key: string]: string;
-  };
-  solutionCode: {
-    language: string;
-    code: string;
-  };
-  categories: string[];
-  status: "Pending" | "Approved" | "Rejected";
-  reviewedBy?: string | User;
-  reviewedAt?: string;
-  feedback?: string;
-  approvedProblem?: string | Problem;
-  createdAt: string;
-  updatedAt: string;
+  passRate?: number;
 }

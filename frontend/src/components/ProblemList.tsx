@@ -9,7 +9,9 @@ const ProblemList = () => {
   const [problems, setProblems] = useState<Problem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [hoveredProblemId, setHoveredProblemId] = useState<number | null>(null);
+  const [hoveredProblemId, setHoveredProblemId] = useState<
+    string | number | null
+  >(null);
   const [filter, setFilter] = useState({
     difficulty: "",
     search: "",
@@ -39,7 +41,14 @@ const ProblemList = () => {
 
       // Check if the response data is an array
       if (Array.isArray(response.data)) {
-        setProblems(response.data);
+        // Ensure each problem has an id field (use _id if id is not available)
+        // Also add a displayIndex for showing sequential numbering
+        const processedProblems = response.data.map((problem, index) => ({
+          ...problem,
+          id: problem.id || problem._id,
+          displayIndex: index + 1, // Add 1-based index
+        }));
+        setProblems(processedProblems);
       } else {
         console.error("Unexpected response format:", response.data);
         setDebugInfo({
@@ -203,40 +212,45 @@ const ProblemList = () => {
           </thead>
           <tbody>
             {problems.length > 0 ? (
-              problems.map((problem) => (
-                <tr
-                  key={problem.id || problem._id}
-                  className="problem-row"
-                  onMouseEnter={() =>
-                    problem.id ? setHoveredProblemId(problem.id) : null
-                  }
-                  onMouseLeave={() => setHoveredProblemId(null)}
-                  style={{ position: "relative" }}
-                >
-                  <td>{problem.id}</td>
-                  <td>
-                    <Link
-                      to={`/problem/${problem.id}`}
-                      className="problem-title-link"
-                    >
-                      {problem.title}
-                    </Link>
-                    {hoveredProblemId === problem.id && (
-                      <div className="problem-hover-preview">
-                        <ProblemPreview problem={problem} />
-                      </div>
-                    )}
-                  </td>
-                  <td>
-                    <span
-                      className={getDifficultyColorClass(problem.difficulty)}
-                    >
-                      {problem.difficulty}
-                    </span>
-                  </td>
-                  <td>{problem.acceptance || "N/A"}</td>
-                </tr>
-              ))
+              problems.map((problem, index) => {
+                // Ensure problem ID is available (either id or _id)
+                const problemId = problem.id || problem._id;
+                // Use 1-based index for display
+                const displayIndex = index + 1;
+
+                return (
+                  <tr
+                    key={problemId}
+                    className="problem-row"
+                    onMouseEnter={() => setHoveredProblemId(problemId || null)}
+                    onMouseLeave={() => setHoveredProblemId(null)}
+                    style={{ position: "relative" }}
+                  >
+                    <td>{displayIndex}</td>
+                    <td>
+                      <Link
+                        to={`/problem/${problemId}?index=${displayIndex}`}
+                        className="problem-title-link"
+                      >
+                        {problem.title}
+                      </Link>
+                      {hoveredProblemId === problemId && (
+                        <div className="problem-hover-preview">
+                          <ProblemPreview problem={problem} />
+                        </div>
+                      )}
+                    </td>
+                    <td>
+                      <span
+                        className={getDifficultyColorClass(problem.difficulty)}
+                      >
+                        {problem.difficulty}
+                      </span>
+                    </td>
+                    <td>{problem.acceptance || "N/A"}</td>
+                  </tr>
+                );
+              })
             ) : (
               <tr>
                 <td colSpan={4} className="text-center py-4">

@@ -27,11 +27,21 @@ const ProblemPreview = ({ problem }: ProblemPreviewProps) => {
       : problem.description
     : "No description available.";
 
+  // Get display ID for the problem
+  let displayId;
+  if (typeof problem.displayIndex === "number") {
+    displayId = problem.displayIndex;
+  } else if (typeof problem.id === "number") {
+    displayId = problem.id;
+  } else {
+    displayId = "#";
+  }
+
   return (
     // Added specific class for styling the preview card
     <div className="problem-preview-card">
       <div className="preview-header">
-        <span className="preview-id">{problem.id}.</span>
+        <span className="preview-id">{displayId}.</span>
         <span className="preview-title">{problem.title}</span>
         <span
           className={`preview-difficulty ${getDifficultyColorClass(

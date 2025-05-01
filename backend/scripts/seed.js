@@ -202,7 +202,7 @@ public:
 ];
 
 // Connect to MongoDB
-const MONGO_URI = "mongodb://localhost:27017/algoforge";
+const MONGO_URI = "mongodb://localhost:27017/algorush";
 
 mongoose
   .connect(MONGO_URI)
