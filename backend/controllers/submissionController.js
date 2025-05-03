@@ -5,8 +5,6 @@ const mongoose = require("mongoose");
 const executionService = require("../services/executionService");
 const cppExecutionService = require("../services/cppExecutionService");
 
-
-
 exports.submitSolution = async (req, res) => {
   try {
     const { problemId, code, language } = req.body;
@@ -24,7 +22,9 @@ exports.submitSolution = async (req, res) => {
 
     // Currently only supporting C++
     if (language !== "cpp") {
-      return res.status(400).json({ error: "Only C++ is currently supported for execution." });
+      return res
+        .status(400)
+        .json({ error: "Only C++ is currently supported for execution." });
     }
 
     if (!mongoose.Types.ObjectId.isValid(problemId)) {
@@ -41,11 +41,18 @@ exports.submitSolution = async (req, res) => {
     }
 
     // Execute all test cases
-    const executionResults = await cppExecutionService.runAllTests(
-      code, 
-      problem.testCases, 
-      problem.functionName
-    );
+    let executionResults;
+    if (language === "cpp") {
+      // Pass the C++ test runner from the problem if available
+      executionResults = await cppExecutionService.runAllTests(
+        code,
+        problem.testCases,
+        problem.functionName,
+        problem.cppTestRunner // Pass the test runner code
+      );
+    } else {
+      // Handle other languages...
+    }
 
     // Create submission record
     const submission = new Submission({
@@ -78,7 +85,10 @@ exports.submitSolution = async (req, res) => {
       user.problemsAttempted.push(problemId);
     }
 
-    if (executionResults.status === "Accepted" && !user.problemsSolved.includes(problemId)) {
+    if (
+      executionResults.status === "Accepted" &&
+      !user.problemsSolved.includes(problemId)
+    ) {
       user.problemsSolved.push(problemId);
     }
 
@@ -124,7 +134,9 @@ exports.runCode = async (req, res) => {
 
     // Currently only supporting C++
     if (language !== "cpp") {
-      return res.status(400).json({ error: "Only C++ is currently supported for execution." });
+      return res
+        .status(400)
+        .json({ error: "Only C++ is currently supported for execution." });
     }
 
     if (!mongoose.Types.ObjectId.isValid(problemId)) {
@@ -137,22 +149,23 @@ exports.runCode = async (req, res) => {
     }
 
     // Run just the example test cases (not hidden test cases) for "Run Code"
-    const exampleTests = problem.examples.map(example => ({
+    const exampleTests = problem.examples.map((example) => ({
       input: example.input,
       output: example.output,
-      isHidden: false
+      isHidden: false,
     }));
 
     const executionResults = await cppExecutionService.runAllTests(
-      code, 
-      exampleTests, 
+      code,
+      exampleTests,
       problem.functionName
     );
 
     res.json({
-      status: executionResults.testCasesPassed === exampleTests.length 
-        ? "All Tests Passed" 
-        : "Some Tests Failed",
+      status:
+        executionResults.testCasesPassed === exampleTests.length
+          ? "All Tests Passed"
+          : "Some Tests Failed",
       executionTime: executionResults.executionTime,
       memoryUsed: 0, // Will require additional measurement
       testCasesPassed: executionResults.testCasesPassed,

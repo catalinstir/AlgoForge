@@ -49,6 +49,10 @@ const problemSchema = new mongoose.Schema(
       python: { type: String },
       javascript: { type: String },
     },
+    cppTestRunner: {
+      type: String,
+      default: "",
+    },
 
     // Problem metadata
     author: {

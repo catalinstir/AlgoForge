@@ -57,7 +57,6 @@ const AppContent = () => {
   const fetchUserData = useCallback(async () => {
     console.log("Attempting to fetch user data...");
     try {
-      // First try the user endpoint
       const response = await userAPI.getProfile();
       console.log("User data fetched successfully:", response.data);
       setCurrentUser(response.data);
@@ -278,7 +277,6 @@ const AppContent = () => {
               }
             />
 
-            {/* Catch-all */}
             <Route path="*" element={<Navigate to="/problems" />} />
           </Routes>
         </div>

@@ -15,15 +15,20 @@ exports.getMe = async (req, res) => {
       return res.status(404).json({ error: "User not found." });
     }
 
+    // Get total published problems count
+    const totalProblems = await mongoose.model("Problem").countDocuments({
+      status: "Published",
+    });
+
     const transformedUser = {
       id: user._id.toString(),
       username: user.username,
       email: user.email,
       role: user.role || "user",
-      problemsSolved: user.problemsSolved.length,
-      problemsAttempted: user.problemsAttempted.length,
-      problemsUploaded: user.problemsUploaded.length,
-      totalProblems: 10, // This should be dynamic based on your data
+      problemsSolvedCount: user.problemsSolved.length,
+      problemsAttemptedCount: user.problemsAttempted.length,
+      problemsUploadedCount: user.problemsUploaded.length,
+      totalProblems: totalProblems, // Set actual problem count
     };
 
     res.json(transformedUser);
