@@ -2,6 +2,10 @@ const Submission = require("../models/Submission");
 const Problem = require("../models/Problem");
 const User = require("../models/User");
 const mongoose = require("mongoose");
+const executionService = require("../services/executionService");
+const cppExecutionService = require("../services/cppExecutionService");
+
+
 
 exports.submitSolution = async (req, res) => {
   try {
@@ -18,6 +22,11 @@ exports.submitSolution = async (req, res) => {
       return res.status(400).json({ error: "Invalid language." });
     }
 
+    // Currently only supporting C++
+    if (language !== "cpp") {
+      return res.status(400).json({ error: "Only C++ is currently supported for execution." });
+    }
+
     if (!mongoose.Types.ObjectId.isValid(problemId)) {
       return res.status(400).json({ error: "Invalid problem ID." });
     }
@@ -31,67 +40,45 @@ exports.submitSolution = async (req, res) => {
       return res.status(403).json({ error: "Problem is not published." });
     }
 
-    const executionTime = Math.floor(Math.random() * 100) + 50; // 50-150ms
-    const memoryUsed = Math.floor(Math.random() * 5000) + 5000; // 5000-10000KB
+    // Execute all test cases
+    const executionResults = await cppExecutionService.runAllTests(
+      code, 
+      problem.testCases, 
+      problem.functionName
+    );
 
-    const testResults = [];
-    let testCasesPassed = 0;
-
-    for (const testCase of problem.testCases) {
-      const expectedKeywords = ["return", problem.functionName];
-      const keywordPresent = expectedKeywords.every((keyword) =>
-        code.toLowerCase().includes(keyword.toLowerCase())
-      );
-
-      const passed = keywordPresent ? Math.random() < 0.8 : Math.random() < 0.2;
-
-      if (passed) testCasesPassed++;
-
-      testResults.push({
-        input: testCase.input,
-        expectedOutput: testCase.output,
-        actualOutput: passed ? testCase.output : "Wrong output",
-        passed,
-        hidden: testCase.isHidden,
-      });
-    }
-
-    let status = "Pending";
-    if (testCasesPassed === problem.testCases.length) {
-      status = "Accepted";
-    } else {
-      status = "Wrong Answer";
-    }
-
+    // Create submission record
     const submission = new Submission({
       user: userId,
       problem: problemId,
       code,
       language,
-      status,
-      executionTime,
-      memoryUsed,
-      testCasesPassed,
-      totalTestCases: problem.testCases.length,
-      testResults,
+      status: executionResults.status,
+      executionTime: executionResults.executionTime,
+      memoryUsed: 0, // Will require additional measurement
+      testCasesPassed: executionResults.testCasesPassed,
+      totalTestCases: executionResults.totalTestCases,
+      testResults: executionResults.testResults,
     });
 
     await submission.save();
 
+    // Update problem stats
     await Problem.findByIdAndUpdate(problemId, {
       $inc: {
         totalSubmissions: 1,
-        successfulSubmissions: status === "Accepted" ? 1 : 0,
+        successfulSubmissions: executionResults.status === "Accepted" ? 1 : 0,
       },
     });
 
+    // Update user stats
     const user = await User.findById(userId);
 
     if (!user.problemsAttempted.includes(problemId)) {
       user.problemsAttempted.push(problemId);
     }
 
-    if (status === "Accepted" && !user.problemsSolved.includes(problemId)) {
+    if (executionResults.status === "Accepted" && !user.problemsSolved.includes(problemId)) {
       user.problemsSolved.push(problemId);
     }
 
@@ -103,17 +90,18 @@ exports.submitSolution = async (req, res) => {
 
     await user.save();
 
+    // Send response (filter out hidden test cases for the user)
     res.status(201).json({
       submission: {
         id: submission._id,
-        status,
-        executionTime,
-        memoryUsed,
-        testCasesPassed,
-        totalTestCases: problem.testCases.length,
+        status: executionResults.status,
+        executionTime: executionResults.executionTime,
+        memoryUsed: submission.memoryUsed,
+        testCasesPassed: executionResults.testCasesPassed,
+        totalTestCases: executionResults.totalTestCases,
         passRate: submission.passRate,
       },
-      testResults: testResults.filter((test) => !test.hidden),
+      testResults: executionResults.testResults.filter((test) => !test.hidden),
     });
   } catch (err) {
     console.error("Error submitting solution:", err);
@@ -134,6 +122,11 @@ exports.runCode = async (req, res) => {
       return res.status(400).json({ error: "Invalid language." });
     }
 
+    // Currently only supporting C++
+    if (language !== "cpp") {
+      return res.status(400).json({ error: "Only C++ is currently supported for execution." });
+    }
+
     if (!mongoose.Types.ObjectId.isValid(problemId)) {
       return res.status(400).json({ error: "Invalid problem ID." });
     }
@@ -143,41 +136,28 @@ exports.runCode = async (req, res) => {
       return res.status(404).json({ error: "Problem not found." });
     }
 
-    const executionTime = Math.floor(Math.random() * 100) + 20; // 20-120ms
-    const memoryUsed = Math.floor(Math.random() * 3000) + 3000; // 3000-6000KB
+    // Run just the example test cases (not hidden test cases) for "Run Code"
+    const exampleTests = problem.examples.map(example => ({
+      input: example.input,
+      output: example.output,
+      isHidden: false
+    }));
 
-    const testResults = [];
-    let testCasesPassed = 0;
-
-    for (const example of problem.examples) {
-      const expectedKeywords = ["return", problem.functionName];
-      const keywordPresent = expectedKeywords.every((keyword) =>
-        code.toLowerCase().includes(keyword.toLowerCase())
-      );
-
-      const passed = keywordPresent ? Math.random() < 0.9 : Math.random() < 0.3;
-
-      if (passed) testCasesPassed++;
-
-      testResults.push({
-        input: example.input,
-        expectedOutput: example.output,
-        actualOutput: passed ? example.output : "Wrong output",
-        passed,
-        hidden: false,
-      });
-    }
+    const executionResults = await cppExecutionService.runAllTests(
+      code, 
+      exampleTests, 
+      problem.functionName
+    );
 
     res.json({
-      status:
-        testCasesPassed === problem.examples.length
-          ? "All Tests Passed"
-          : "Some Tests Failed",
-      executionTime,
-      memoryUsed,
-      testCasesPassed,
-      totalTestCases: problem.examples.length,
-      testResults,
+      status: executionResults.testCasesPassed === exampleTests.length 
+        ? "All Tests Passed" 
+        : "Some Tests Failed",
+      executionTime: executionResults.executionTime,
+      memoryUsed: 0, // Will require additional measurement
+      testCasesPassed: executionResults.testCasesPassed,
+      totalTestCases: exampleTests.length,
+      testResults: executionResults.testResults,
     });
   } catch (err) {
     console.error("Error running code:", err);
