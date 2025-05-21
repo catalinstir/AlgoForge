@@ -1,4 +1,3 @@
-// backend/services/cppExecutionService.js
 const dockerService = require("./dockerService");
 
 class CppExecutionService {
@@ -9,7 +8,6 @@ class CppExecutionService {
   // Parse input string into C++ data
   parseCppInput(input) {
     console.log("Parsing input:", input);
-
     const result = {};
 
     // Split by comma that's not inside brackets
@@ -37,143 +35,48 @@ class CppExecutionService {
     return result;
   }
 
-  // Create a complete C++ program from user code and test case
-  createCppTestProgram(userCode, functionName, input) {
-    // Parse the input to extract parameters
-    const parsedInput = this.parseCppInput(input);
+  // Create a test file with the input data
+  createInputFile(parsedInput) {
+    // Convert the parsed input to a simple format that can be read by the main function
+    const lines = [];
+    
+    for (const [key, value] of Object.entries(parsedInput)) {
+      // For arrays/vectors, we write the size first, then the elements
+      if (value.startsWith("{") && value.endsWith("}")) {
+        const elements = value.slice(1, -1).split(",").map(item => item.trim());
+        lines.push(`${key}_size=${elements.length}`);
+        lines.push(`${key}=${value}`);
+      } else {
+        lines.push(`${key}=${value}`);
+      }
+    }
+    
+    return lines.join("\n");
+  }
 
-    // Check if userCode has 'using namespace std'
-    const hasNamespace = userCode.includes("using namespace std");
-
-    // If not, add it before the Solution class
-    let processedCode = userCode;
-    if (!hasNamespace) {
-      processedCode = userCode.replace(
+  // Replace user solution in the full source template
+  injectUserCode(fullSourceTemplate, userCode) {
+    // The template should have a marker for where to inject the user code
+    // e.g., // USER_CODE_START and // USER_CODE_END
+    const startMarker = "// USER_CODE_START";
+    const endMarker = "// USER_CODE_END";
+    
+    const startIndex = fullSourceTemplate.indexOf(startMarker);
+    const endIndex = fullSourceTemplate.indexOf(endMarker);
+    
+    if (startIndex === -1 || endIndex === -1) {
+      console.error("Template does not contain user code markers");
+      // Fall back to simpler replacement strategy
+      return fullSourceTemplate.replace(
         "class Solution {",
-        "using namespace std;\n\nclass Solution {"
+        "class Solution {\n" + userCode
       );
     }
-
-    // Generate a main function based on function name
-    let mainFunction;
-
-    // Handle specific known problems
-    if (functionName === "twoSum") {
-      mainFunction = `
-int main() {
-    // Create test input for Two Sum problem
-    std::vector<int> nums ${parsedInput.nums};
-    int target = ${parsedInput.target};
     
-    // Create solution instance and call the function
-    Solution solution;
-    std::vector<int> result = solution.${functionName}(nums, target);
+    const beforeUserCode = fullSourceTemplate.substring(0, startIndex + startMarker.length);
+    const afterUserCode = fullSourceTemplate.substring(endIndex);
     
-    // Print result vectors directly
-    std::cout << vectorToString(result) << std::endl;
-    
-    return 0;
-}`;
-    } else if (functionName === "isPalindrome") {
-      mainFunction = `
-int main() {
-    // Create test input for Palindrome Number problem
-    int x = ${parsedInput.x};
-    
-    // Create solution instance and call the function
-    Solution solution;
-    bool result = solution.${functionName}(x);
-    
-    // Print boolean result directly
-    std::cout << (result ? "true" : "false") << std::endl;
-    
-    return 0;
-}`;
-    } else {
-      // Generic case - create a type-specific output handler
-      let functionCall = `solution.${functionName}(`;
-      const paramNames = Object.keys(parsedInput);
-
-      functionCall += paramNames.map((name) => name).join(", ");
-      functionCall += ")";
-
-      mainFunction = `
-int main() {
-    // Create test input for generic problem
-    ${paramNames
-      .map((name) => {
-        // Try to infer variable type
-        let type = "auto";
-        if (parsedInput[name].startsWith("{")) {
-          type = "std::vector<int>";
-        } else if (
-          parsedInput[name] === "true" ||
-          parsedInput[name] === "false"
-        ) {
-          type = "bool";
-        } else if (!isNaN(parseInt(parsedInput[name]))) {
-          type = "int";
-        }
-
-        return `${type} ${name} = ${parsedInput[name]};`;
-      })
-      .join("\n    ")}
-    
-    // Create solution instance and call the function
-    Solution solution;
-    auto result = ${functionCall};
-    
-    // Use template specialization to handle different return types
-    printResult(result);
-    
-    return 0;
-}
-
-// Helper to print different result types
-template <typename T>
-void printResult(const T& result) {
-    std::cout << result << std::endl;
-}
-
-// Specialization for vectors
-template <>
-void printResult(const std::vector<int>& result) {
-    std::cout << vectorToString(result) << std::endl;
-}
-
-// Specialization for booleans
-template <>
-void printResult(const bool& result) {
-    std::cout << (result ? "true" : "false") << std::endl;
-}`;
-    }
-
-    // Combine all the parts
-    return `
-#include <iostream>
-#include <vector>
-#include <string>
-#include <algorithm>
-#include <sstream>
-#include <unordered_map>
-
-// Helper function to print vectors for debugging
-template <typename T>
-std::string vectorToString(const std::vector<T>& vec) {
-    std::stringstream ss;
-    ss << "[";
-    for (size_t i = 0; i < vec.size(); ++i) {
-        if (i > 0) ss << ",";
-        ss << vec[i];
-    }
-    ss << "]";
-    return ss.str();
-}
-
-${processedCode}
-
-${mainFunction}
-`;
+    return beforeUserCode + "\n" + userCode + "\n" + afterUserCode;
   }
 
   // Normalize output for comparison
@@ -188,20 +91,22 @@ ${mainFunction}
   }
 
   // Run a single test case
-  async runTestCase(code, testCase, functionName) {
+  async runTestCase(code, testCase, functionName, fullSourceTemplate) {
     try {
-      // Create a complete C++ program
-      const fullProgram = this.createCppTestProgram(
-        code,
-        functionName,
-        testCase.input
-      );
-
+      // Parse the input data
+      const parsedInput = this.parseCppInput(testCase.input);
+      
+      // Create input file content
+      const inputFileContent = this.createInputFile(parsedInput);
+      
+      // Inject the user code into the template
+      const fullProgram = this.injectUserCode(fullSourceTemplate, code);
+      
       // For debugging: log the generated program
       console.log("Generated C++ program:", fullProgram);
 
-      // Execute the C++ code
-      const result = await this.dockerService.executeCppCode(fullProgram, "");
+      // Execute the C++ code with the input file
+      const result = await this.dockerService.executeCppCode(fullProgram, inputFileContent);
 
       // Check if execution was successful
       if (result.error) {
@@ -252,13 +157,110 @@ ${mainFunction}
   }
 
   // Run all test cases for a submission
-  async runAllTests(code, testCases, functionName) {
+  async runAllTests(code, testCases, functionName, fullSourceTemplate) {
     const results = [];
     let testCasesPassed = 0;
     let totalExecutionTime = 0;
 
+    // If no full source template is provided, use the fallback method
+    if (!fullSourceTemplate) {
+      console.warn("No full source template provided, using legacy method");
+      // Create a default full source template with user code markers
+      fullSourceTemplate = `
+#include <iostream>
+#include <vector>
+#include <string>
+#include <algorithm>
+#include <sstream>
+#include <unordered_map>
+#include <fstream>
+
+// Helper function to print vectors for debugging
+template <typename T>
+std::string vectorToString(const std::vector<T>& vec) {
+    std::stringstream ss;
+    ss << "[";
+    for (size_t i = 0; i < vec.size(); ++i) {
+        if (i > 0) ss << ",";
+        ss << vec[i];
+    }
+    ss << "]";
+    return ss.str();
+}
+
+// USER_CODE_START
+class Solution {
+public:
+    // Default implementation 
+    std::vector<int> twoSum(std::vector<int>& nums, int target) {
+        return {0, 1}; // Default implementation
+    }
+};
+// USER_CODE_END
+
+int main() {
+    // Read input data from file
+    std::ifstream inputFile("input.txt");
+    if (!inputFile.is_open()) {
+        std::cerr << "Failed to open input file" << std::endl;
+        return 1;
+    }
+
+    // Parse input parameters
+    std::unordered_map<std::string, std::string> params;
+    std::string line;
+    while (std::getline(inputFile, line)) {
+        size_t delimiterPos = line.find("=");
+        if (delimiterPos != std::string::npos) {
+            std::string key = line.substr(0, delimiterPos);
+            std::string value = line.substr(delimiterPos + 1);
+            params[key] = value;
+        }
+    }
+    inputFile.close();
+
+    // Create solution instance
+    Solution solution;
+    
+    // Process specific problem types based on function name
+    if (params.find("nums") != params.end() && params.find("target") != params.end()) {
+        // Two Sum problem
+        std::string numsStr = params["nums"];
+        int target = std::stoi(params["target"]);
+        
+        // Parse nums vector
+        std::vector<int> nums;
+        numsStr = numsStr.substr(1, numsStr.size() - 2); // Remove { }
+        std::stringstream ss(numsStr);
+        std::string item;
+        while (std::getline(ss, item, ',')) {
+            nums.push_back(std::stoi(item));
+        }
+        
+        // Call solution
+        std::vector<int> result = solution.twoSum(nums, target);
+        
+        // Output result
+        std::cout << vectorToString(result) << std::endl;
+    }
+    else if (params.find("x") != params.end()) {
+        // isPalindrome problem
+        int x = std::stoi(params["x"]);
+        bool result = solution.isPalindrome(x);
+        std::cout << (result ? "true" : "false") << std::endl;
+    }
+    else {
+        std::cerr << "Unknown problem type or missing parameters" << std::endl;
+        return 1;
+    }
+    
+    return 0;
+}
+`;
+    }
+
     for (const testCase of testCases) {
-      const result = await this.runTestCase(code, testCase, functionName);
+      const result = await this.runTestCase(code, testCase, functionName, fullSourceTemplate);
 
       if (result.passed) {
         testCasesPassed++;

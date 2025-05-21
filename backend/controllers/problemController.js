@@ -112,6 +112,7 @@ exports.createProblem = async (req, res) => {
       testCases,
       functionName,
       codeTemplates,
+      fullSourceTemplates, // Add support for fullSourceTemplates
       categories,
       solutionCode,
       status,
@@ -137,6 +138,7 @@ exports.createProblem = async (req, res) => {
       testCases: testCases || [],
       functionName,
       codeTemplates: codeTemplates || {},
+      fullSourceTemplates: fullSourceTemplates || {}, // Store fullSourceTemplates
       author: userId,
       categories: categories || [],
       solutionCode: solutionCode || {},
@@ -194,6 +196,8 @@ exports.updateProblem = async (req, res) => {
       if (req.body.testCases) updateData.testCases = req.body.testCases;
       if (req.body.codeTemplates)
         updateData.codeTemplates = req.body.codeTemplates;
+      if (req.body.fullSourceTemplates) // Add support for fullSourceTemplates
+        updateData.fullSourceTemplates = req.body.fullSourceTemplates;
       if (req.body.categories) updateData.categories = req.body.categories;
       if (req.body.solutionCode)
         updateData.solutionCode = req.body.solutionCode;

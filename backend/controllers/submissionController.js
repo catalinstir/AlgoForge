@@ -40,18 +40,24 @@ exports.submitSolution = async (req, res) => {
       return res.status(403).json({ error: "Problem is not published." });
     }
 
-    // Execute all test cases
+    // Get the full source template for the specified language
+    let fullSourceTemplate = null;
+    if (problem.fullSourceTemplates && problem.fullSourceTemplates[language]) {
+      fullSourceTemplate = problem.fullSourceTemplates[language];
+    }
+    
+    // Execute all test cases using the new approach with full source templates
     let executionResults;
     if (language === "cpp") {
-      // Pass the C++ test runner from the problem if available
       executionResults = await cppExecutionService.runAllTests(
         code,
         problem.testCases,
         problem.functionName,
-        problem.cppTestRunner // Pass the test runner code
+        fullSourceTemplate
       );
     } else {
-      // Handle other languages...
+      // Handle other languages (future implementation)
+      return res.status(400).json({ error: "Only C++ is currently supported." });
     }
 
     // Create submission record
@@ -148,6 +154,12 @@ exports.runCode = async (req, res) => {
       return res.status(404).json({ error: "Problem not found." });
     }
 
+    // Get the full source template for the specified language
+    let fullSourceTemplate = null;
+    if (problem.fullSourceTemplates && problem.fullSourceTemplates[language]) {
+      fullSourceTemplate = problem.fullSourceTemplates[language];
+    }
+
     // Run just the example test cases (not hidden test cases) for "Run Code"
     const exampleTests = problem.examples.map((example) => ({
       input: example.input,
@@ -155,10 +167,12 @@ exports.runCode = async (req, res) => {
       isHidden: false,
     }));
 
+    // Run the tests with the full source template
     const executionResults = await cppExecutionService.runAllTests(
       code,
       exampleTests,
-      problem.functionName
+      problem.functionName,
+      fullSourceTemplate
     );
 
     res.json({
@@ -178,6 +192,7 @@ exports.runCode = async (req, res) => {
   }
 };
 
+// The rest of the controller functions remain unchanged
 exports.getUserSubmissions = async (req, res) => {
   try {
     const userId = req.user.userId;

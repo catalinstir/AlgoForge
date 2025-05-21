@@ -43,17 +43,13 @@ const problemSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    codeTemplates: {
+    // New whole source files (complete source that's ready to run)
+    wholeSource: {
       cpp: { type: String },
       java: { type: String },
       python: { type: String },
       javascript: { type: String },
     },
-    cppTestRunner: {
-      type: String,
-      default: "",
-    },
-
     // Problem metadata
     author: {
       type: mongoose.Schema.Types.ObjectId,
@@ -76,26 +72,12 @@ const problemSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
-
     // Categories/tags for browsing
     categories: [
       {
         type: String,
       },
     ],
-
-    // Solution code (visible to admins only)
-    solutionCode: {
-      cpp: { type: String },
-      java: { type: String },
-      python: { type: String },
-      javascript: { type: String },
-    },
-
-    // Admin feedback for rejected problems
-    rejectionReason: {
-      type: String,
-    },
   },
   {
     timestamps: true,
