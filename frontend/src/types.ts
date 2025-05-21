@@ -1,4 +1,3 @@
-// types.ts
 export type UserRole = 'guest' | 'user' | 'admin';
 
 export interface User {
@@ -38,6 +37,10 @@ export interface Problem {
   testCases?: TestCase[];
   functionName: string;
   codeTemplates?: {
+    [key: string]: string;
+  };
+  // New field: Complete source code including main function for testing
+  wholeSource?: {
     [key: string]: string;
   };
   author?: any;

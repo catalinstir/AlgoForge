@@ -1,3 +1,5 @@
+// backend/models/Problem.js
+
 const mongoose = require("mongoose");
 
 const problemSchema = new mongoose.Schema(
@@ -43,13 +45,20 @@ const problemSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    // New whole source files (complete source that's ready to run)
+    codeTemplates: {
+      cpp: { type: String },
+      java: { type: String },
+      python: { type: String },
+      javascript: { type: String },
+    },
+    // Complete source code including main function for testing
     wholeSource: {
       cpp: { type: String },
       java: { type: String },
       python: { type: String },
       javascript: { type: String },
     },
+
     // Problem metadata
     author: {
       type: mongoose.Schema.Types.ObjectId,
@@ -72,12 +81,26 @@ const problemSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+
     // Categories/tags for browsing
     categories: [
       {
         type: String,
       },
     ],
+
+    // Solution code (visible to admins only)
+    solutionCode: {
+      cpp: { type: String },
+      java: { type: String },
+      python: { type: String },
+      javascript: { type: String },
+    },
+
+    // Admin feedback for rejected problems
+    rejectionReason: {
+      type: String,
+    },
   },
   {
     timestamps: true,

@@ -2,8 +2,7 @@ const Submission = require("../models/Submission");
 const Problem = require("../models/Problem");
 const User = require("../models/User");
 const mongoose = require("mongoose");
-const executionService = require("../services/executionService");
-const cppExecutionService = require("../services/cppExecutionService");
+const simpleExecutionService = require("../services/simpleExecutionService");
 
 exports.submitSolution = async (req, res) => {
   try {
@@ -40,25 +39,19 @@ exports.submitSolution = async (req, res) => {
       return res.status(403).json({ error: "Problem is not published." });
     }
 
-    // Get the full source template for the specified language
-    let fullSourceTemplate = null;
-    if (problem.fullSourceTemplates && problem.fullSourceTemplates[language]) {
-      fullSourceTemplate = problem.fullSourceTemplates[language];
+    // Make sure this problem has the complete source code in wholeSource.cpp
+    if (!problem.wholeSource || !problem.wholeSource.cpp) {
+      return res.status(500).json({ 
+        error: "Problem is missing complete source code required for testing."
+      });
     }
-    
-    // Execute all test cases using the new approach with full source templates
-    let executionResults;
-    if (language === "cpp") {
-      executionResults = await cppExecutionService.runAllTests(
-        code,
-        problem.testCases,
-        problem.functionName,
-        fullSourceTemplate
-      );
-    } else {
-      // Handle other languages (future implementation)
-      return res.status(400).json({ error: "Only C++ is currently supported." });
-    }
+
+    // Execute all test cases using the simple execution service
+    const executionResults = await simpleExecutionService.runAllTests(
+      code, 
+      problem, 
+      problem.testCases
+    );
 
     // Create submission record
     const submission = new Submission({
@@ -154,10 +147,11 @@ exports.runCode = async (req, res) => {
       return res.status(404).json({ error: "Problem not found." });
     }
 
-    // Get the full source template for the specified language
-    let fullSourceTemplate = null;
-    if (problem.fullSourceTemplates && problem.fullSourceTemplates[language]) {
-      fullSourceTemplate = problem.fullSourceTemplates[language];
+    // Make sure this problem has the complete source code
+    if (!problem.wholeSource || !problem.wholeSource.cpp) {
+      return res.status(500).json({ 
+        error: "Problem is missing complete source code required for testing."
+      });
     }
 
     // Run just the example test cases (not hidden test cases) for "Run Code"
@@ -167,12 +161,10 @@ exports.runCode = async (req, res) => {
       isHidden: false,
     }));
 
-    // Run the tests with the full source template
-    const executionResults = await cppExecutionService.runAllTests(
+    const executionResults = await simpleExecutionService.runAllTests(
       code,
-      exampleTests,
-      problem.functionName,
-      fullSourceTemplate
+      problem,
+      exampleTests
     );
 
     res.json({
