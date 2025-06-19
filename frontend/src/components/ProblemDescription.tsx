@@ -102,6 +102,29 @@ const ProblemDescription = ({ problem }: ProblemDescriptionProps) => {
           {renderDescription(problem.description)}
         </div>
 
+        {/* Input/Output Format Section */}
+        {(problem.inputFormat || problem.outputFormat) && (
+          <div className="format-section mb-4">
+            <h5 className="mb-3">Input/Output Format</h5>
+            {problem.inputFormat && (
+              <div className="mb-3">
+                <h6 className="text-info">Input Format:</h6>
+                <div className="bg-dark p-3 rounded">
+                  <code className="text-light">{problem.inputFormat}</code>
+                </div>
+              </div>
+            )}
+            {problem.outputFormat && (
+              <div className="mb-3">
+                <h6 className="text-info">Output Format:</h6>
+                <div className="bg-dark p-3 rounded">
+                  <code className="text-light">{problem.outputFormat}</code>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {problem.examples && problem.examples.length > 0 && (
           <div className="examples-section mb-4">
             <h5 className="mb-3">Examples</h5>
@@ -112,12 +135,18 @@ const ProblemDescription = ({ problem }: ProblemDescriptionProps) => {
               >
                 <strong className="d-block mb-2">Example {index + 1}:</strong>
                 <div className="example-io mb-2">
-                  <pre className="mb-1">
-                    <strong>Input:</strong> {example.input}
-                  </pre>
-                  <pre className="mb-0">
-                    <strong>Output:</strong> {example.output}
-                  </pre>
+                  <div className="mb-2">
+                    <strong>Input:</strong>
+                    <pre className="bg-secondary p-2 rounded mt-1 mb-0">
+                      {example.input}
+                    </pre>
+                  </div>
+                  <div className="mb-2">
+                    <strong>Output:</strong>
+                    <pre className="bg-secondary p-2 rounded mt-1 mb-0">
+                      {example.output}
+                    </pre>
+                  </div>
                 </div>
                 {example.explanation && (
                   <div className="example-explanation text-muted small">
@@ -136,14 +165,23 @@ const ProblemDescription = ({ problem }: ProblemDescriptionProps) => {
           </div>
         )}
 
-        {problem.functionName && (
-          <div className="function-section mb-4">
-            <h5 className="mb-3">Function Definition</h5>
-            <div className="bg-dark p-3 rounded">
-              <code>{selectedLanguageGuide(problem.functionName)}</code>
-            </div>
+        {/* Note about complete program requirement */}
+        <div className="coding-instructions mb-4">
+          <h5 className="mb-3">Instructions</h5>
+          <div className="alert alert-info">
+            <h6 className="alert-heading">Complete Program Required</h6>
+            <p className="mb-2">
+              Write a complete program that reads input from a file called <code>input.txt</code> 
+              and writes output to standard output (stdout).
+            </p>
+            <ul className="mb-0">
+              <li>Read input from the file <code>input.txt</code> according to the input format specified above</li>
+              <li>Process the input to solve the problem</li>
+              <li>Output the result to stdout in the exact format specified</li>
+              <li>Make sure to handle all edge cases mentioned in constraints</li>
+            </ul>
           </div>
-        )}
+        </div>
 
         <div className="metadata-section mt-4 pt-3 border-top border-secondary">
           <p className="uploaded-by text-muted small">
@@ -161,10 +199,6 @@ const ProblemDescription = ({ problem }: ProblemDescriptionProps) => {
       </div>
     </div>
   );
-};
-
-const selectedLanguageGuide = (functionName: string) => {
-  return `Implement the '${functionName}' function according to the problem description.\nMake sure your solution passes all test cases.`;
 };
 
 export default ProblemDescription;

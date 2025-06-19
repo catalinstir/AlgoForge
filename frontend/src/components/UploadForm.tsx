@@ -23,7 +23,8 @@ const ProblemUploadForm = ({ onSuccess }: ProblemUploadFormProps) => {
     title: "",
     difficulty: "Medium" as "Easy" | "Medium" | "Hard",
     description: "",
-    functionName: "",
+    inputFormat: "",
+    outputFormat: "",
     categories: [] as string[],
   });
 
@@ -35,18 +36,27 @@ const ProblemUploadForm = ({ onSuccess }: ProblemUploadFormProps) => {
     { input: "", output: "", isHidden: false },
   ]);
   const [solutionCode, setSolutionCode] = useState({
-    language: "javascript",
-    code: "// Your solution code here",
+    language: "cpp",
+    code: `// Write your complete solution here\n\nint main() {\n    \n    return 0;\n}`,
   });
-  const [codeTemplates, setCodeTemplates] = useState({
-    javascript: "// JavaScript template\n",
-    python: "# Python template\n",
-    cpp: "// C++ template\n",
-    java: "// Java template\n",
+  
+  // Suggested includes for each language
+  const [suggestedIncludes, setSuggestedIncludes] = useState({
+    cpp: [] as string[],
+    java: [] as string[],
+    python: [] as string[],
+    javascript: [] as string[],
   });
 
-  const [currentTemplateLanguage, setCurrentTemplateLanguage] =
-    useState("javascript");
+  // Input fields for adding new includes
+  const [includeInputs, setIncludeInputs] = useState({
+    cpp: "",
+    java: "",
+    python: "",
+    javascript: "",
+  });
+
+  const [currentIncludeLanguage, setCurrentIncludeLanguage] = useState("cpp");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -138,16 +148,32 @@ const ProblemUploadForm = ({ onSuccess }: ProblemUploadFormProps) => {
     setSolutionCode((prev) => ({ ...prev, code: newCode }));
   };
 
-  const handleTemplateLanguageChange = (
-    e: React.ChangeEvent<HTMLSelectElement>
-  ) => {
-    setCurrentTemplateLanguage(e.target.value);
+  // Handle suggested includes
+  const addSuggestedInclude = (language: keyof typeof suggestedIncludes) => {
+    const input = includeInputs[language].trim();
+    if (input && !suggestedIncludes[language].includes(input)) {
+      setSuggestedIncludes(prev => ({
+        ...prev,
+        [language]: [...prev[language], input]
+      }));
+      setIncludeInputs(prev => ({
+        ...prev,
+        [language]: ""
+      }));
+    }
   };
 
-  const handleTemplateCodeChange = (newCode: string) => {
-    setCodeTemplates((prev) => ({
+  const removeSuggestedInclude = (language: keyof typeof suggestedIncludes, index: number) => {
+    setSuggestedIncludes(prev => ({
       ...prev,
-      [currentTemplateLanguage]: newCode,
+      [language]: prev[language].filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleIncludeInputChange = (language: keyof typeof includeInputs, value: string) => {
+    setIncludeInputs(prev => ({
+      ...prev,
+      [language]: value
     }));
   };
 
@@ -194,8 +220,12 @@ const ProblemUploadForm = ({ onSuccess }: ProblemUploadFormProps) => {
           setError("Description is required");
           return false;
         }
-        if (!formData.functionName.trim()) {
-          setError("Function name is required");
+        if (!formData.inputFormat.trim()) {
+          setError("Input format is required");
+          return false;
+        }
+        if (!formData.outputFormat.trim()) {
+          setError("Output format is required");
           return false;
         }
         if (formData.categories.length === 0) {
@@ -231,14 +261,6 @@ const ProblemUploadForm = ({ onSuccess }: ProblemUploadFormProps) => {
           setError("Solution code is required");
           return false;
         }
-
-        const languages = Object.keys(codeTemplates);
-        for (const lang of languages) {
-          if (!codeTemplates[lang as keyof typeof codeTemplates].trim()) {
-            setError(`Template for ${lang} is required`);
-            return false;
-          }
-        }
         return true;
 
       default:
@@ -272,10 +294,12 @@ const ProblemUploadForm = ({ onSuccess }: ProblemUploadFormProps) => {
         isHidden: testCase.isHidden,
       }));
 
-      const cleanedTemplates: { [key: string]: string } = {};
-      Object.entries(codeTemplates).forEach(([lang, code]) => {
-        if (code.trim() !== "") {
-          cleanedTemplates[lang] = code;
+      // Clean up suggested includes - remove empty ones
+      const cleanedSuggestedIncludes: { [key: string]: string[] } = {};
+      Object.entries(suggestedIncludes).forEach(([lang, includes]) => {
+        const filtered = includes.filter(inc => inc.trim() !== "");
+        if (filtered.length > 0) {
+          cleanedSuggestedIncludes[lang] = filtered;
         }
       });
 
@@ -285,7 +309,7 @@ const ProblemUploadForm = ({ onSuccess }: ProblemUploadFormProps) => {
         constraints: cleanedConstraints,
         testCases: cleanedTestCases,
         solutionCode: solutionCode,
-        codeTemplates: cleanedTemplates,
+        suggestedIncludes: cleanedSuggestedIncludes,
       };
 
       const response = await problemRequestAPI.submitRequest(requestData);
@@ -314,23 +338,30 @@ const ProblemUploadForm = ({ onSuccess }: ProblemUploadFormProps) => {
       title: "",
       difficulty: "Medium",
       description: "",
-      functionName: "",
+      inputFormat: "",
+      outputFormat: "",
       categories: [],
     });
     setExamples([{ input: "", output: "", explanation: "" }]);
     setConstraints([""]);
     setTestCases([{ input: "", output: "", isHidden: false }]);
     setSolutionCode({
-      language: "javascript",
-      code: "// Your solution code here",
+      language: "cpp",
+      code: `// Write your complete solution here\n\nint main() {\n    \n    return 0;\n}`,
     });
-    setCodeTemplates({
-      javascript: "// JavaScript template\n",
-      python: "# Python template\n",
-      cpp: "// C++ template\n",
-      java: "// Java template\n",
+    setSuggestedIncludes({
+      cpp: [],
+      java: [],
+      python: [],
+      javascript: [],
     });
-    setCurrentTemplateLanguage("javascript");
+    setIncludeInputs({
+      cpp: "",
+      java: "",
+      python: "",
+      javascript: "",
+    });
+    setCurrentIncludeLanguage("cpp");
     setStep(1);
     setCategoryInput("");
   };
@@ -396,26 +427,6 @@ const ProblemUploadForm = ({ onSuccess }: ProblemUploadFormProps) => {
                 </div>
 
                 <div className="mb-3">
-                  <label htmlFor="functionName" className="form-label">
-                    Function Name *
-                  </label>
-                  <input
-                    type="text"
-                    className="form-control bg-dark text-light border-secondary"
-                    id="functionName"
-                    name="functionName"
-                    value={formData.functionName}
-                    onChange={handleChange}
-                    placeholder="e.g., twoSum"
-                    required
-                  />
-                  <small className="text-muted">
-                    This will be the name of the function users implement in
-                    their solution.
-                  </small>
-                </div>
-
-                <div className="mb-3">
                   <label className="form-label">Categories *</label>
                   <div className="input-group mb-2">
                     <input
@@ -469,6 +480,44 @@ const ProblemUploadForm = ({ onSuccess }: ProblemUploadFormProps) => {
                     placeholder="Provide a detailed problem description..."
                     required
                   ></textarea>
+                </div>
+
+                <div className="mb-3">
+                  <label htmlFor="inputFormat" className="form-label">
+                    Input Format *
+                  </label>
+                  <textarea
+                    className="form-control bg-dark text-light border-secondary"
+                    id="inputFormat"
+                    name="inputFormat"
+                    value={formData.inputFormat}
+                    onChange={handleChange}
+                    rows={3}
+                    placeholder="Describe how the input is formatted..."
+                    required
+                  ></textarea>
+                  <small className="text-muted">
+                    Explain exactly how users should read the input from stdin.
+                  </small>
+                </div>
+
+                <div className="mb-3">
+                  <label htmlFor="outputFormat" className="form-label">
+                    Output Format *
+                  </label>
+                  <textarea
+                    className="form-control bg-dark text-light border-secondary"
+                    id="outputFormat"
+                    name="outputFormat"
+                    value={formData.outputFormat}
+                    onChange={handleChange}
+                    rows={3}
+                    placeholder="Describe how the output should be formatted..."
+                    required
+                  ></textarea>
+                  <small className="text-muted">
+                    Explain exactly how users should format their output to stdout.
+                  </small>
                 </div>
 
                 <div className="d-flex justify-content-end">
@@ -529,7 +578,7 @@ const ProblemUploadForm = ({ onSuccess }: ProblemUploadFormProps) => {
                               )
                             }
                             rows={2}
-                            placeholder="e.g., nums = [2, 7, 11, 15], target = 9"
+                            placeholder="Input exactly as it appears in stdin"
                             required
                           ></textarea>
                         </div>
@@ -546,7 +595,7 @@ const ProblemUploadForm = ({ onSuccess }: ProblemUploadFormProps) => {
                               )
                             }
                             rows={2}
-                            placeholder="e.g., [0, 1]"
+                            placeholder="Expected output exactly as it appears in stdout"
                             required
                           ></textarea>
                         </div>
@@ -634,7 +683,8 @@ const ProblemUploadForm = ({ onSuccess }: ProblemUploadFormProps) => {
                 <h4 className="mb-4">Test Cases</h4>
                 <p className="text-muted mb-4">
                   Create test cases to validate user solutions. Hidden test
-                  cases are not visible to users.
+                  cases are not visible to users. Input and output should match
+                  exactly what stdin/stdout would contain.
                 </p>
 
                 <div className="d-flex justify-content-end mb-3">
@@ -692,7 +742,7 @@ const ProblemUploadForm = ({ onSuccess }: ProblemUploadFormProps) => {
                             handleTestCaseChange(index, "input", e.target.value)
                           }
                           rows={2}
-                          placeholder="Test input..."
+                          placeholder="Input exactly as it would appear in stdin..."
                           required
                         ></textarea>
                       </div>
@@ -709,7 +759,7 @@ const ProblemUploadForm = ({ onSuccess }: ProblemUploadFormProps) => {
                             )
                           }
                           rows={2}
-                          placeholder="Expected output..."
+                          placeholder="Expected output exactly as it would appear in stdout..."
                           required
                         ></textarea>
                       </div>
@@ -738,10 +788,13 @@ const ProblemUploadForm = ({ onSuccess }: ProblemUploadFormProps) => {
 
             {step === 4 && (
               <div className="step-content">
-                <h4 className="mb-4">Solution and Code Templates</h4>
+                <h4 className="mb-4">Solution and Suggested Includes</h4>
 
                 <div className="mb-4">
                   <h5 className="mb-3">Your Solution *</h5>
+                  <p className="text-muted mb-3">
+                    Provide a complete working solution that reads from stdin and writes to stdout.
+                  </p>
                   <div className="mb-3">
                     <label className="form-label">Language</label>
                     <select
@@ -749,15 +802,15 @@ const ProblemUploadForm = ({ onSuccess }: ProblemUploadFormProps) => {
                       value={solutionCode.language}
                       onChange={handleSolutionLanguageChange}
                     >
-                      <option value="javascript">JavaScript</option>
-                      <option value="python">Python</option>
                       <option value="cpp">C++</option>
+                      <option value="python">Python</option>
+                      <option value="javascript">JavaScript</option>
                       <option value="java">Java</option>
                     </select>
                   </div>
                   <div
                     className="code-editor-container"
-                    style={{ height: "200px" }}
+                    style={{ height: "300px" }}
                   >
                     <CodeEditor
                       code={solutionCode.code}
@@ -766,44 +819,94 @@ const ProblemUploadForm = ({ onSuccess }: ProblemUploadFormProps) => {
                     />
                   </div>
                   <small className="text-muted">
-                    Provide your working solution to the problem. This will be
-                    used to verify test cases.
+                    Provide your complete working solution that reads from stdin and writes to stdout.
+                    This will be used to verify test cases.
                   </small>
                 </div>
 
                 <div className="mb-4">
-                  <h5 className="mb-3">Code Templates *</h5>
-                  <p className="text-muted">
-                    Create starter templates for each supported language.
+                  <h5 className="mb-3">Suggested Includes/Imports (Optional)</h5>
+                  <p className="text-muted mb-3">
+                    Add helpful include/import suggestions that will appear as comments in the code editor.
+                    These help guide users on what libraries they might need.
                   </p>
 
                   <div className="mb-3">
                     <label className="form-label">Language</label>
                     <select
                       className="form-select bg-dark text-light border-secondary"
-                      value={currentTemplateLanguage}
-                      onChange={handleTemplateLanguageChange}
+                      value={currentIncludeLanguage}
+                      onChange={(e) => setCurrentIncludeLanguage(e.target.value as keyof typeof suggestedIncludes)}
                     >
-                      <option value="javascript">JavaScript</option>
-                      <option value="python">Python</option>
                       <option value="cpp">C++</option>
                       <option value="java">Java</option>
+                      <option value="python">Python</option>
+                      <option value="javascript">JavaScript</option>
                     </select>
                   </div>
 
-                  <div
-                    className="code-editor-container"
-                    style={{ height: "200px" }}
-                  >
-                    <CodeEditor
-                      code={
-                        codeTemplates[
-                          currentTemplateLanguage as keyof typeof codeTemplates
-                        ]
+                  <div className="input-group mb-3">
+                    <input
+                      type="text"
+                      className="form-control bg-dark text-light border-secondary"
+                      placeholder={
+                        currentIncludeLanguage === "cpp" ? "#include <vector>" :
+                        currentIncludeLanguage === "java" ? "import java.util.*;" :
+                        currentIncludeLanguage === "python" ? "import sys" :
+                        "const fs = require('fs');"
                       }
-                      language={currentTemplateLanguage}
-                      onChange={handleTemplateCodeChange}
+                      value={includeInputs[currentIncludeLanguage]}
+                      onChange={(e) => handleIncludeInputChange(currentIncludeLanguage, e.target.value)}
                     />
+                    <button
+                      type="button"
+                      className="btn btn-outline-primary"
+                      onClick={() => addSuggestedInclude(currentIncludeLanguage)}
+                    >
+                      Add
+                    </button>
+                  </div>
+
+                  {/* Display current includes for selected language */}
+                  {suggestedIncludes[currentIncludeLanguage].length > 0 && (
+                    <div className="mb-3">
+                      <h6 className="text-info">{currentIncludeLanguage.toUpperCase()} Suggestions:</h6>
+                      <div className="d-flex flex-wrap gap-2">
+                        {suggestedIncludes[currentIncludeLanguage].map((include, index) => (
+                          <span
+                            key={index}
+                            className="badge bg-secondary p-2"
+                          >
+                            <code>{include}</code>
+                            <button
+                              type="button"
+                              className="btn-close btn-close-white ms-2"
+                              style={{ fontSize: "0.5rem" }}
+                              onClick={() => removeSuggestedInclude(currentIncludeLanguage, index)}
+                            ></button>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Show all language suggestions */}
+                  <div className="mt-4">
+                    <h6 className="text-muted">All Suggested Includes:</h6>
+                    {Object.entries(suggestedIncludes).map(([lang, includes]) => (
+                      includes.length > 0 && (
+                        <div key={lang} className="mb-2">
+                          <strong className="text-info">{lang.toUpperCase()}:</strong>
+                          <div className="ms-3">
+                            {includes.map((include, index) => (
+                              <div key={index} className="text-muted">
+                                <code>// {include}</code>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )
+                    ))}
                   </div>
                 </div>
 

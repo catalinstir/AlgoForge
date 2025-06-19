@@ -8,26 +8,28 @@ interface ProfileProps {
 
 interface UserStats {
   user: {
-    totalProblems: number;
+    id: string;
+    username: string;
+    email: string;
+    role: string;
     problemsSolvedCount: number;
     problemsAttemptedCount: number;
+    problemsUploadedCount: number;
+    totalProblems: number;
+    successRate: number;
+    solvedByDifficulty: {
+      Easy: number;
+      Medium: number;
+      Hard: number;
+    };
+    problemsByDifficulty: {
+      Easy: number;
+      Medium: number;
+      Hard: number;
+    };
     createdAt?: string;
   };
-  statistics: {
-    problems: {
-      total: number;
-      byDifficulty: { easy: number; medium: number; hard: number };
-    };
-    solved: {
-      total: number;
-      byDifficulty: { easy: number; medium: number; hard: number };
-    };
-    submissions: {
-      total: number;
-      successRate: number;
-    };
-  };
-  recentActivity: any[];
+  recentActivity?: any[];
 }
 
 const Profile = ({ user }: ProfileProps) => {
@@ -47,7 +49,7 @@ const Profile = ({ user }: ProfileProps) => {
     setError(null);
     try {
       const response = await userAPI.getProfile();
-      setUserStats(response.data);
+      setUserStats({ user: response.data });
     } catch (err) {
       console.error("Error fetching user profile:", err);
       setError("Failed to load user profile information.");
@@ -92,11 +94,8 @@ const Profile = ({ user }: ProfileProps) => {
   }
 
   const progressPercentage =
-    userStats?.statistics?.problems?.total &&
-    userStats.statistics.problems.total > 0
-      ? (userStats.statistics.solved.total /
-          userStats.statistics.problems.total) *
-        100
+    userStats?.user?.totalProblems && userStats.user.totalProblems > 0
+      ? (userStats.user.problemsSolvedCount / userStats.user.totalProblems) * 100
       : 0;
 
   const formatDate = (dateString: string) => {
@@ -136,6 +135,12 @@ const Profile = ({ user }: ProfileProps) => {
                   : "N/A"}
               </p>
             </div>
+            <div className="text-end">
+              <div className="text-muted small">Success Rate</div>
+              <div className="fs-4 text-primary">
+                {userStats?.user?.successRate?.toFixed(1) || 0}%
+              </div>
+            </div>
           </div>
 
           <ul className="nav nav-tabs mb-4">
@@ -164,7 +169,7 @@ const Profile = ({ user }: ProfileProps) => {
                 }`}
                 onClick={() => setActiveTab("submissions")}
               >
-                Submissions
+                Statistics
               </button>
             </li>
             {user.role === "admin" && (
@@ -190,23 +195,21 @@ const Profile = ({ user }: ProfileProps) => {
                     className="progress-bar bg-success progress-bar-striped progress-bar-animated"
                     role="progressbar"
                     style={{ width: `${progressPercentage}%` }}
-                    aria-valuenow={userStats?.statistics?.solved?.total || 0}
+                    aria-valuenow={userStats?.user?.problemsSolvedCount || 0}
                     aria-valuemin={0}
-                    aria-valuemax={
-                      userStats?.statistics?.problems?.total || 100
-                    }
+                    aria-valuemax={userStats?.user?.totalProblems || 100}
                   >
                     {progressPercentage > 10
-                      ? `${userStats?.statistics?.solved?.total || 0} / ${
-                          userStats?.statistics?.problems?.total || 0
+                      ? `${userStats?.user?.problemsSolvedCount || 0} / ${
+                          userStats?.user?.totalProblems || 0
                         }`
                       : ""}
                   </div>
                 </div>
                 <p className="text-center text-muted small mb-4">
                   {progressPercentage <= 10
-                    ? `${userStats?.statistics?.solved?.total || 0} / ${
-                        userStats?.statistics?.problems?.total || 0
+                    ? `${userStats?.user?.problemsSolvedCount || 0} / ${
+                        userStats?.user?.totalProblems || 0
                       } Solved`
                     : "Problems Solved"}
                 </p>
@@ -221,12 +224,23 @@ const Profile = ({ user }: ProfileProps) => {
                           <div className="d-flex justify-content-between">
                             <span>Solved:</span>
                             <span>
-                              {userStats?.statistics?.solved?.byDifficulty
-                                ?.easy || 0}{" "}
+                              {userStats?.user?.solvedByDifficulty?.Easy || 0}{" "}
                               /
-                              {userStats?.statistics?.problems?.byDifficulty
-                                ?.easy || 0}
+                              {userStats?.user?.problemsByDifficulty?.Easy || 0}
                             </span>
+                          </div>
+                          <div className="progress mt-2" style={{ height: "8px" }}>
+                            <div
+                              className="progress-bar bg-success"
+                              role="progressbar"
+                              style={{
+                                width: `${
+                                  userStats?.user?.problemsByDifficulty?.Easy 
+                                    ? (userStats.user.solvedByDifficulty?.Easy || 0) / userStats.user.problemsByDifficulty.Easy * 100
+                                    : 0
+                                }%`
+                              }}
+                            ></div>
                           </div>
                         </div>
                       </div>
@@ -238,12 +252,23 @@ const Profile = ({ user }: ProfileProps) => {
                           <div className="d-flex justify-content-between">
                             <span>Solved:</span>
                             <span>
-                              {userStats?.statistics?.solved?.byDifficulty
-                                ?.medium || 0}{" "}
+                              {userStats?.user?.solvedByDifficulty?.Medium || 0}{" "}
                               /
-                              {userStats?.statistics?.problems?.byDifficulty
-                                ?.medium || 0}
+                              {userStats?.user?.problemsByDifficulty?.Medium || 0}
                             </span>
+                          </div>
+                          <div className="progress mt-2" style={{ height: "8px" }}>
+                            <div
+                              className="progress-bar bg-warning"
+                              role="progressbar"
+                              style={{
+                                width: `${
+                                  userStats?.user?.problemsByDifficulty?.Medium 
+                                    ? (userStats.user.solvedByDifficulty?.Medium || 0) / userStats.user.problemsByDifficulty.Medium * 100
+                                    : 0
+                                }%`
+                              }}
+                            ></div>
                           </div>
                         </div>
                       </div>
@@ -255,13 +280,47 @@ const Profile = ({ user }: ProfileProps) => {
                           <div className="d-flex justify-content-between">
                             <span>Solved:</span>
                             <span>
-                              {userStats?.statistics?.solved?.byDifficulty
-                                ?.hard || 0}{" "}
+                              {userStats?.user?.solvedByDifficulty?.Hard || 0}{" "}
                               /
-                              {userStats?.statistics?.problems?.byDifficulty
-                                ?.hard || 0}
+                              {userStats?.user?.problemsByDifficulty?.Hard || 0}
                             </span>
                           </div>
+                          <div className="progress mt-2" style={{ height: "8px" }}>
+                            <div
+                              className="progress-bar bg-danger"
+                              role="progressbar"
+                              style={{
+                                width: `${
+                                  userStats?.user?.problemsByDifficulty?.Hard 
+                                    ? (userStats.user.solvedByDifficulty?.Hard || 0) / userStats.user.problemsByDifficulty.Hard * 100
+                                    : 0
+                                }%`
+                              }}
+                            ></div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="row g-3 mb-4">
+                  <div className="col-md-6">
+                    <div className="card bg-dark border-info text-light">
+                      <div className="card-body text-center">
+                        <h6 className="card-title text-info">Problems Attempted</h6>
+                        <div className="fs-3 text-info">
+                          {userStats?.user?.problemsAttemptedCount || 0}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="col-md-6">
+                    <div className="card bg-dark border-warning text-light">
+                      <div className="card-body text-center">
+                        <h6 className="card-title text-warning">Problems Uploaded</h6>
+                        <div className="fs-3 text-warning">
+                          {userStats?.user?.problemsUploadedCount || 0}
                         </div>
                       </div>
                     </div>
@@ -309,12 +368,54 @@ const Profile = ({ user }: ProfileProps) => {
                 <p className="mb-3">
                   Total Solved:{" "}
                   <span className="badge bg-success">
-                    {userStats?.statistics?.solved?.total || 0}
+                    {userStats?.user?.problemsSolvedCount || 0}
                   </span>
                 </p>
 
+                <div className="row g-3 mb-4">
+                  <div className="col-md-4">
+                    <div className="card bg-dark border-success text-light">
+                      <div className="card-body text-center">
+                        <h6 className="card-title text-success">Easy</h6>
+                        <div className="fs-4 text-success">
+                          {userStats?.user?.solvedByDifficulty?.Easy || 0}
+                        </div>
+                        <small className="text-muted">
+                          of {userStats?.user?.problemsByDifficulty?.Easy || 0}
+                        </small>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="col-md-4">
+                    <div className="card bg-dark border-warning text-light">
+                      <div className="card-body text-center">
+                        <h6 className="card-title text-warning">Medium</h6>
+                        <div className="fs-4 text-warning">
+                          {userStats?.user?.solvedByDifficulty?.Medium || 0}
+                        </div>
+                        <small className="text-muted">
+                          of {userStats?.user?.problemsByDifficulty?.Medium || 0}
+                        </small>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="col-md-4">
+                    <div className="card bg-dark border-danger text-light">
+                      <div className="card-body text-center">
+                        <h6 className="card-title text-danger">Hard</h6>
+                        <div className="fs-4 text-danger">
+                          {userStats?.user?.solvedByDifficulty?.Hard || 0}
+                        </div>
+                        <small className="text-muted">
+                          of {userStats?.user?.problemsByDifficulty?.Hard || 0}
+                        </small>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="alert alert-info">
-                  The solved problems list will be implemented in a future
+                  The detailed solved problems list will be implemented in a future
                   update.
                 </div>
               </div>
@@ -322,27 +423,41 @@ const Profile = ({ user }: ProfileProps) => {
 
             {activeTab === "submissions" && (
               <div className="tab-pane fade show active">
-                <h5 className="mb-3">Submission History</h5>
-                <div className="d-flex justify-content-between mb-3">
-                  <p>
-                    Total Submissions:{" "}
-                    <span className="badge bg-primary">
-                      {userStats?.statistics?.submissions?.total || 0}
-                    </span>
-                  </p>
-                  <p>
-                    Success Rate:{" "}
-                    <span className="badge bg-info">
-                      {userStats?.statistics?.submissions?.successRate?.toFixed(
-                        1
-                      ) || 0}
-                      %
-                    </span>
-                  </p>
+                <h5 className="mb-3">Submission Statistics</h5>
+                
+                <div className="row g-3 mb-4">
+                  <div className="col-md-6">
+                    <div className="card bg-dark border-primary text-light">
+                      <div className="card-body text-center">
+                        <h6 className="card-title text-primary">Success Rate</h6>
+                        <div className="fs-3 text-primary">
+                          {userStats?.user?.successRate?.toFixed(1) || 0}%
+                        </div>
+                        <small className="text-muted">
+                          {userStats?.user?.problemsSolvedCount || 0} solved out of{" "}
+                          {userStats?.user?.problemsAttemptedCount || 0} attempted
+                        </small>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="col-md-6">
+                    <div className="card bg-dark border-info text-light">
+                      <div className="card-body text-center">
+                        <h6 className="card-title text-info">Overall Progress</h6>
+                        <div className="fs-3 text-info">
+                          {progressPercentage.toFixed(1)}%
+                        </div>
+                        <small className="text-muted">
+                          {userStats?.user?.problemsSolvedCount || 0} of{" "}
+                          {userStats?.user?.totalProblems || 0} total problems
+                        </small>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="alert alert-info">
-                  The submissions history will be implemented in a future
+                  The detailed submissions history will be implemented in a future
                   update.
                 </div>
               </div>

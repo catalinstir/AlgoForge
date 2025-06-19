@@ -20,6 +20,20 @@ exports.getMe = async (req, res) => {
       status: "Published",
     });
 
+    // Get problem count by difficulty
+    const problemsByDifficulty = await mongoose.model("Problem").aggregate([
+      { $match: { status: "Published" } },
+      { $group: { _id: "$difficulty", count: { $sum: 1 } } }
+    ]);
+
+    // Create difficulty breakdown BEFORE using it
+    const difficultyBreakdown = { Easy: 0, Medium: 0, Hard: 0 };
+    problemsByDifficulty.forEach(item => {
+      if (item._id && difficultyBreakdown.hasOwnProperty(item._id)) {
+        difficultyBreakdown[item._id] = item.count;
+      }
+    });
+
     const transformedUser = {
       id: user._id.toString(),
       username: user.username,
@@ -28,7 +42,11 @@ exports.getMe = async (req, res) => {
       problemsSolvedCount: user.problemsSolved.length,
       problemsAttemptedCount: user.problemsAttempted.length,
       problemsUploadedCount: user.problemsUploaded.length,
-      totalProblems: totalProblems, // Set actual problem count
+      totalProblems: totalProblems,
+      successRate: user.successRate || 0,
+      solvedByDifficulty: user.solvedByDifficulty || { Easy: 0, Medium: 0, Hard: 0 },
+      problemsByDifficulty: difficultyBreakdown,
+      createdAt: user.createdAt,
     };
 
     res.json(transformedUser);

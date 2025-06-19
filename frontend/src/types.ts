@@ -27,7 +27,7 @@ export interface TestCase {
 export interface Problem {
   id?: string | number;
   _id?: string;
-  displayIndex?: number;  // Added for showing sequential numbering
+  displayIndex?: number;
   title: string;
   difficulty: 'Easy' | 'Medium' | 'Hard';
   description: string;
@@ -35,13 +35,14 @@ export interface Problem {
   constraints: string[];
   acceptance?: string;
   testCases?: TestCase[];
-  functionName: string;
-  codeTemplates?: {
-    [key: string]: string;
-  };
-  // New field: Complete source code including main function for testing
-  wholeSource?: {
-    [key: string]: string;
+  inputFormat?: string;
+  outputFormat?: string;
+  // Suggested includes/imports for each language
+  suggestedIncludes?: {
+    cpp?: string[];
+    java?: string[];
+    python?: string[];
+    javascript?: string[];
   };
   author?: any;
   status?: 'Draft' | 'Published' | 'Rejected';

@@ -39,41 +39,65 @@ const ProblemDetails = ({ currentUser }: ProblemDetailsProps) => {
   const [error, setError] = useState<string | null>(null);
   const [submissionResult, setSubmissionResult] =
     useState<SubmissionResult | null>(null);
-  const [showFullSource, setShowFullSource] = useState<boolean>(false); // Toggle for showing whole source
-  const [validationError, setValidationError] = useState<string | null>(null);
 
-  // Move all utility functions into the component
+  // Generate starter code with suggested includes
+  const generateStarterCode = (language: string, problem: Problem | null): string => {
+    if (!problem?.suggestedIncludes?.[language as keyof typeof problem.suggestedIncludes]) {
+      // Return minimal starter code if no suggestions
+      switch (language) {
+        case "cpp":
+          return "// Write your complete C++ solution here\n\nint main() {\n    \n    return 0;\n}";
+        case "python":
+          return "# Write your complete Python solution here\n";
+        case "javascript":
+          return `// Write your complete JavaScript solution here
+const fs = require('fs');
 
-  // Extract Solution class from code
-  const extractSolutionClass = (sourceCode: string): string | null => {
-    // This regex looks for the Solution class definition
-    const solutionClassRegex = /class\s+Solution\s*\{[\s\S]*?\};/;
-    const match = sourceCode.match(solutionClassRegex);
-    return match ? match[0] : null;
-  };
+// Read input from input.txt file
+const input = fs.readFileSync('input.txt', 'utf8').trim();
 
-  // Check if code contains a valid Solution class
-  const validateSolutionClass = (sourceCode: string): boolean => {
-    return !!extractSolutionClass(sourceCode);
-  };
+// Process input and solve the problem
 
-  // Check if code appears to be complete source with main function
-  const isCompleteSource = (sourceCode: string): boolean => {
-    return (
-      sourceCode.includes("int main()") || sourceCode.includes("int main(")
-    );
-  };
-
-  // Prepare code for submission
-  const prepareSubmissionCode = (sourceCode: string): string => {
-    // If already showing just the Solution class, use it directly
-    if (!isCompleteSource(sourceCode)) {
-      return sourceCode;
+// Output result to stdout
+console.log(result);`;
+        case "java":
+          return "// Write your complete Java solution here\n\npublic class Main {\n    public static void main(String[] args) {\n        \n    }\n}";
+        default:
+          return "// Write your solution here";
+      }
     }
 
-    // If showing full source, extract just the Solution class
-    const solutionClass = extractSolutionClass(sourceCode);
-    return solutionClass || sourceCode; // Fall back to full code if extraction fails
+    const includes = problem.suggestedIncludes[language as keyof typeof problem.suggestedIncludes] || [];
+    
+    switch (language) {
+      case "cpp":
+        const cppIncludes = includes.map(inc => `// ${inc}`).join('\n');
+        return `${cppIncludes}\n\n// Write your complete C++ solution here\n\nint main() {\n    \n    return 0;\n}`;
+      
+      case "python":
+        const pythonImports = includes.map(imp => `# ${imp}`).join('\n');
+        return `${pythonImports}\n\n# Write your complete Python solution here\n`;
+      
+      case "javascript":
+        const jsRequires = includes.map(req => `// ${req}`).join('\n');
+        return `${jsRequires}\n\n// Write your complete JavaScript solution here
+const fs = require('fs');
+
+// Read input from input.txt file
+const input = fs.readFileSync('input.txt', 'utf8').trim();
+
+// Process input and solve the problem
+
+// Output result to stdout
+console.log(result);`;
+      
+      case "java":
+        const javaImports = includes.map(imp => `// ${imp}`).join('\n');
+        return `${javaImports}\n\n// Write your complete Java solution here\n\npublic class Main {\n    public static void main(String[] args) {\n        \n    }\n}`;
+      
+      default:
+        return "// Write your solution here";
+    }
   };
 
   useEffect(() => {
@@ -90,8 +114,6 @@ const ProblemDetails = ({ currentUser }: ProblemDetailsProps) => {
     setError(null);
     setOutput("");
     setProblem(null);
-    setShowFullSource(false);
-    setValidationError(null);
 
     try {
       if (!problemId) {
@@ -133,21 +155,9 @@ const ProblemDetails = ({ currentUser }: ProblemDetailsProps) => {
 
       setProblem(fetchedProblem);
 
-      // Select default language based on available templates
-      if (fetchedProblem.codeTemplates) {
-        const availableLanguages = Object.keys(fetchedProblem.codeTemplates);
-        if (availableLanguages.length > 0) {
-          const defaultLang = availableLanguages.includes("cpp")
-            ? "cpp"
-            : availableLanguages[0];
-          setSelectedLanguage(defaultLang);
-          setCode(fetchedProblem.codeTemplates[defaultLang]);
-        } else {
-          setCode(`// No template available\n// Start coding here`);
-        }
-      } else {
-        setCode(`// No template available\n// Start coding here`);
-      }
+      // Set default language and generate starter code
+      setSelectedLanguage("cpp");
+      setCode(generateStarterCode("cpp", fetchedProblem));
     } catch (err: any) {
       console.error("Error loading problem:", err);
       setError(err.response?.data?.error || "Failed to load problem data");
@@ -159,87 +169,15 @@ const ProblemDetails = ({ currentUser }: ProblemDetailsProps) => {
   const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newLanguage = e.target.value;
     setSelectedLanguage(newLanguage);
-    setValidationError(null);
-
-    // Reset to template view when changing language
-    setShowFullSource(false);
-
-    if (problem?.codeTemplates && problem.codeTemplates[newLanguage]) {
-      setCode(problem.codeTemplates[newLanguage]);
-    } else {
-      setCode(
-        `// No template available for ${newLanguage}\n// Start coding here`
-      );
-    }
+    setCode(generateStarterCode(newLanguage, problem));
   };
 
   const handleCodeChange = (newCode: string) => {
     setCode(newCode);
-    // Clear validation error when code changes
-    if (validationError) setValidationError(null);
-  };
-
-  // Toggle between showing just the template or the whole source
-  const handleToggleSourceView = () => {
-    // If currently showing full source, switch back to template/user code
-    if (showFullSource) {
-      // Try to extract the solution class first
-      const solutionClass = extractSolutionClass(code);
-
-      if (solutionClass) {
-        // Use the extracted solution class if available
-        setCode(solutionClass);
-      } else if (
-        problem?.codeTemplates &&
-        problem.codeTemplates[selectedLanguage]
-      ) {
-        // Fall back to the template if extraction fails
-        setCode(problem.codeTemplates[selectedLanguage]);
-      }
-    } else {
-      // If currently showing template, switch to whole source
-      if (problem?.wholeSource && problem.wholeSource[selectedLanguage]) {
-        setCode(problem.wholeSource[selectedLanguage]);
-      }
-    }
-    setShowFullSource(!showFullSource);
-  };
-
-  // Validate code before running or submitting
-  const validateCode = (): boolean => {
-    // If showing full source, extract solution class for validation
-    if (showFullSource) {
-      const solutionClass = extractSolutionClass(code);
-      if (!solutionClass) {
-        setValidationError(
-          "Could not find a valid Solution class in your code."
-        );
-        return false;
-      }
-      return true;
-    }
-
-    // If already showing just the solution class/template
-    if (!validateSolutionClass(code)) {
-      setValidationError(
-        "Your code must contain a Solution class. Please make sure it's properly formatted."
-      );
-      return false;
-    }
-
-    return true;
   };
 
   const handleRun = async () => {
     if (!problem) return;
-
-    // Clear previous validation errors
-    setValidationError(null);
-
-    // Validate code before running
-    if (!validateCode()) {
-      return;
-    }
 
     setIsRunning(true);
     setOutput("Running code...\n");
@@ -253,12 +191,9 @@ const ProblemDetails = ({ currentUser }: ProblemDetailsProps) => {
         throw new Error("Problem ID is undefined");
       }
 
-      // Prepare the code for submission
-      const submissionCode = prepareSubmissionCode(code);
-
       const response = await submissionAPI.runCode({
         problemId: validProblemId.toString(),
-        code: submissionCode,
+        code,
         language: selectedLanguage,
       });
 
@@ -272,9 +207,9 @@ const ProblemDetails = ({ currentUser }: ProblemDetailsProps) => {
           runOutput += `Test Case ${index + 1}: ${
             test.passed ? "PASSED" : "FAILED"
           }\n`;
-          runOutput += `Input: ${test.input}\n`;
-          runOutput += `Expected: ${test.expectedOutput}\n`;
-          runOutput += `Got: ${test.actualOutput}\n\n`;
+          runOutput += `Input:\n${test.input}\n`;
+          runOutput += `Expected:\n${test.expectedOutput}\n`;
+          runOutput += `Got:\n${test.actualOutput}\n\n`;
         });
 
         runOutput += `\nSummary: ${result.testCasesPassed}/${result.totalTestCases} test cases passed\n`;
@@ -305,14 +240,6 @@ const ProblemDetails = ({ currentUser }: ProblemDetailsProps) => {
       return;
     }
 
-    // Clear previous validation errors
-    setValidationError(null);
-
-    // Validate code before submitting
-    if (!validateCode()) {
-      return;
-    }
-
     setIsSubmitting(true);
     setOutput("Submitting solution...\n");
     setSubmissionResult(null);
@@ -325,12 +252,9 @@ const ProblemDetails = ({ currentUser }: ProblemDetailsProps) => {
         throw new Error("Problem ID is undefined");
       }
 
-      // Prepare the code for submission
-      const submissionCode = prepareSubmissionCode(code);
-
       const response = await submissionAPI.submitSolution({
         problemId: validProblemId.toString(),
-        code: submissionCode,
+        code,
         language: selectedLanguage,
       });
 
@@ -350,9 +274,9 @@ const ProblemDetails = ({ currentUser }: ProblemDetailsProps) => {
           submitOutput += `\nTest Case ${index + 1}: ${
             test.passed ? "PASSED" : "FAILED"
           }\n`;
-          submitOutput += `Input: ${test.input}\n`;
-          submitOutput += `Expected: ${test.expectedOutput}\n`;
-          submitOutput += `Got: ${test.actualOutput}\n`;
+          submitOutput += `Input:\n${test.input}\n`;
+          submitOutput += `Expected:\n${test.expectedOutput}\n`;
+          submitOutput += `Got:\n${test.actualOutput}\n`;
         });
       }
 
@@ -413,42 +337,29 @@ const ProblemDetails = ({ currentUser }: ProblemDetailsProps) => {
     );
   }
 
+  // Available languages (currently supported)
+  const supportedLanguages = ["cpp", "python", "javascript"];
+
   return (
     <div className="problem-detail-container">
       <div className="row g-0">
         <div className="col-lg-6 editor-pane d-flex flex-column">
           <div className="editor-header d-flex justify-content-between align-items-center p-2 flex-shrink-0">
-            <div className="d-flex">
-              <div className="language-select-container me-2">
-                <select
-                  className="form-select form-select-sm bg-dark text-light border-secondary"
-                  value={selectedLanguage}
-                  onChange={handleLanguageChange}
-                  aria-label="Select Language"
-                  disabled={isRunning || isSubmitting}
-                >
-                  {problem.codeTemplates &&
-                    Object.keys(problem.codeTemplates).map((lang) => (
-                      <option key={lang} value={lang}>
-                        {lang.toUpperCase()}
-                      </option>
-                    ))}
-                  {!problem.codeTemplates && <option value="cpp">C++</option>}
-                </select>
-              </div>
-
-              {/* Toggle button to show/hide the whole source code */}
-              {problem.wholeSource && problem.wholeSource[selectedLanguage] && (
-                <button
-                  className="btn btn-outline-secondary btn-sm me-2"
-                  onClick={handleToggleSourceView}
-                  disabled={isRunning || isSubmitting}
-                >
-                  {showFullSource ? "Show Solution Only" : "View Full Source"}
-                </button>
-              )}
+            <div className="language-select-container">
+              <select
+                className="form-select form-select-sm bg-dark text-light border-secondary"
+                value={selectedLanguage}
+                onChange={handleLanguageChange}
+                aria-label="Select Language"
+                disabled={isRunning || isSubmitting}
+              >
+                {supportedLanguages.map((lang) => (
+                  <option key={lang} value={lang}>
+                    {lang.toUpperCase()}
+                  </option>
+                ))}
+              </select>
             </div>
-
             <div className="action-buttons">
               <button
                 className="btn btn-outline-primary btn-sm me-2"
@@ -489,29 +400,6 @@ const ProblemDetails = ({ currentUser }: ProblemDetailsProps) => {
               </button>
             </div>
           </div>
-
-          {/* Validation error alert */}
-          {validationError && (
-            <div
-              className="alert alert-danger m-2 p-2"
-              style={{ fontSize: "0.85rem" }}
-            >
-              <i className="bi bi-exclamation-triangle-fill me-1"></i>
-              {validationError}
-            </div>
-          )}
-
-          {/* Explanation about Solution-only submissions when viewing full source */}
-          {showFullSource && (
-            <div
-              className="alert alert-info m-2 p-2"
-              style={{ fontSize: "0.85rem" }}
-            >
-              <i className="bi bi-info-circle me-1"></i>
-              You're viewing the full source code for reference. When
-              submitting, only your Solution class implementation will be used.
-            </div>
-          )}
 
           <div className="code-editor-wrapper flex-grow-1">
             <CodeEditor

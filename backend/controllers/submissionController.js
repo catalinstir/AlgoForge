@@ -2,7 +2,7 @@ const Submission = require("../models/Submission");
 const Problem = require("../models/Problem");
 const User = require("../models/User");
 const mongoose = require("mongoose");
-const simpleExecutionService = require("../services/simpleExecutionService");
+const executionService = require("../services/executionService");
 
 exports.submitSolution = async (req, res) => {
   try {
@@ -19,11 +19,11 @@ exports.submitSolution = async (req, res) => {
       return res.status(400).json({ error: "Invalid language." });
     }
 
-    // Currently only supporting C++
-    if (language !== "cpp") {
+    // Currently supporting C++, Python, and JavaScript
+    if (!["cpp", "python", "javascript"].includes(language)) {
       return res
         .status(400)
-        .json({ error: "Only C++ is currently supported for execution." });
+        .json({ error: "Only C++, Python, and JavaScript are currently supported for execution." });
     }
 
     if (!mongoose.Types.ObjectId.isValid(problemId)) {
@@ -39,18 +39,11 @@ exports.submitSolution = async (req, res) => {
       return res.status(403).json({ error: "Problem is not published." });
     }
 
-    // Make sure this problem has the complete source code in wholeSource.cpp
-    if (!problem.wholeSource || !problem.wholeSource.cpp) {
-      return res.status(500).json({ 
-        error: "Problem is missing complete source code required for testing."
-      });
-    }
-
-    // Execute all test cases using the simple execution service
-    const executionResults = await simpleExecutionService.runAllTests(
-      code, 
-      problem, 
-      problem.testCases
+    // Execute all test cases using the execution service
+    const executionResults = await executionService.runAllTests(
+      code,
+      problem.testCases,
+      language
     );
 
     // Create submission record
@@ -84,14 +77,31 @@ exports.submitSolution = async (req, res) => {
       user.problemsAttempted.push(problemId);
     }
 
+    // If the solution is accepted and user hasn't solved this problem before
     if (
       executionResults.status === "Accepted" &&
       !user.problemsSolved.includes(problemId)
     ) {
       user.problemsSolved.push(problemId);
+      
+      // Also track this specific problem's difficulty for the user
+      // We'll need to fetch the problem difficulty for user stats
+      const problemForStats = await Problem.findById(problemId).select('difficulty');
+      if (problemForStats) {
+        // Initialize difficulty counters if they don't exist
+        if (!user.solvedByDifficulty) {
+          user.solvedByDifficulty = { Easy: 0, Medium: 0, Hard: 0 };
+        }
+        
+        // Increment the appropriate difficulty counter
+        user.solvedByDifficulty[problemForStats.difficulty] = 
+          (user.solvedByDifficulty[problemForStats.difficulty] || 0) + 1;
+      }
     }
 
     user.totalSubmissions += 1;
+    
+    // Update success rate based on solved vs attempted
     if (user.problemsAttempted.length > 0) {
       user.successRate =
         (user.problemsSolved.length / user.problemsAttempted.length) * 100;
@@ -131,11 +141,11 @@ exports.runCode = async (req, res) => {
       return res.status(400).json({ error: "Invalid language." });
     }
 
-    // Currently only supporting C++
-    if (language !== "cpp") {
+    // Currently supporting C++, Python, and JavaScript
+    if (!["cpp", "python", "javascript"].includes(language)) {
       return res
         .status(400)
-        .json({ error: "Only C++ is currently supported for execution." });
+        .json({ error: "Only C++, Python, and JavaScript are currently supported for execution." });
     }
 
     if (!mongoose.Types.ObjectId.isValid(problemId)) {
@@ -147,13 +157,6 @@ exports.runCode = async (req, res) => {
       return res.status(404).json({ error: "Problem not found." });
     }
 
-    // Make sure this problem has the complete source code
-    if (!problem.wholeSource || !problem.wholeSource.cpp) {
-      return res.status(500).json({ 
-        error: "Problem is missing complete source code required for testing."
-      });
-    }
-
     // Run just the example test cases (not hidden test cases) for "Run Code"
     const exampleTests = problem.examples.map((example) => ({
       input: example.input,
@@ -161,10 +164,10 @@ exports.runCode = async (req, res) => {
       isHidden: false,
     }));
 
-    const executionResults = await simpleExecutionService.runAllTests(
+    const executionResults = await executionService.runAllTests(
       code,
-      problem,
-      exampleTests
+      exampleTests,
+      language
     );
 
     res.json({
@@ -184,7 +187,6 @@ exports.runCode = async (req, res) => {
   }
 };
 
-// The rest of the controller functions remain unchanged
 exports.getUserSubmissions = async (req, res) => {
   try {
     const userId = req.user.userId;

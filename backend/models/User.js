@@ -40,6 +40,13 @@ const userSchema = new mongoose.Schema({
     type: Number,
     default: 0, // percent
   },
+  
+  // Track solved problems by difficulty
+  solvedByDifficulty: {
+    Easy: { type: Number, default: 0 },
+    Medium: { type: Number, default: 0 },
+    Hard: { type: Number, default: 0 },
+  },
 
   // profile
   createdAt: {

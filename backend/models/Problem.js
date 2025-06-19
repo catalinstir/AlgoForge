@@ -1,5 +1,3 @@
-// backend/models/Problem.js
-
 const mongoose = require("mongoose");
 
 const problemSchema = new mongoose.Schema(
@@ -41,22 +39,21 @@ const problemSchema = new mongoose.Schema(
         isHidden: { type: Boolean, default: false },
       },
     ],
-    functionName: {
+    // Input/Output format description for users
+    inputFormat: {
       type: String,
       required: true,
     },
-    codeTemplates: {
-      cpp: { type: String },
-      java: { type: String },
-      python: { type: String },
-      javascript: { type: String },
+    outputFormat: {
+      type: String,
+      required: true,
     },
-    // Complete source code including main function for testing
-    wholeSource: {
-      cpp: { type: String },
-      java: { type: String },
-      python: { type: String },
-      javascript: { type: String },
+    // Suggested includes/imports as comments - optional hints for users
+    suggestedIncludes: {
+      cpp: [String],
+      java: [String], 
+      python: [String],
+      javascript: [String],
     },
 
     // Problem metadata
@@ -88,14 +85,6 @@ const problemSchema = new mongoose.Schema(
         type: String,
       },
     ],
-
-    // Solution code (visible to admins only)
-    solutionCode: {
-      cpp: { type: String },
-      java: { type: String },
-      python: { type: String },
-      javascript: { type: String },
-    },
 
     // Admin feedback for rejected problems
     rejectionReason: {
