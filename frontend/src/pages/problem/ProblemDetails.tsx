@@ -7,6 +7,7 @@ import { problemAPI, submissionAPI } from "../../services/api";
 
 interface ProblemDetailsProps {
   currentUser: User | null;
+  onUserStatsUpdate?: (newStats: { problemsSolvedCount: number; problemsAttemptedCount: number }) => void;
 }
 
 interface TestResult {
@@ -26,7 +27,7 @@ interface SubmissionResult {
   testResults: TestResult[];
 }
 
-const ProblemDetails = ({ currentUser }: ProblemDetailsProps) => {
+const ProblemDetails = ({ currentUser, onUserStatsUpdate }: ProblemDetailsProps) => {
   const { problemId } = useParams<{ problemId: string }>();
   const location = useLocation();
   const [problem, setProblem] = useState<Problem | null>(null);
@@ -261,6 +262,14 @@ console.log(result);`;
       const result = response.data;
       setSubmissionResult(result.submission);
 
+      // Update user stats in parent component if callback provided
+      if (onUserStatsUpdate && result.userStats) {
+        onUserStatsUpdate({
+          problemsSolvedCount: result.userStats.problemsSolvedCount,
+          problemsAttemptedCount: result.userStats.problemsAttemptedCount
+        });
+      }
+
       let submitOutput = "Submission results:\n\n";
 
       submitOutput += `Status: ${result.submission.status}\n`;
@@ -281,13 +290,27 @@ console.log(result);`;
       }
 
       if (result.submission.status === "Accepted") {
-        submitOutput += "\nCongratulations! Your solution was accepted!";
+        submitOutput += "\n🎉 Congratulations! Your solution was accepted!";
+        
+        // Show updated stats if it's a new solve
+        if (result.userStats?.isNewSolve) {
+          submitOutput += `\n\n📊 Your progress: ${result.userStats.problemsSolvedCount} problems solved!`;
+        }
       } else {
         submitOutput +=
           "\nYour solution was not accepted. Please check the test cases and try again.";
       }
 
       setOutput(submitOutput);
+
+      // If submission was successful, reload the problem list to update acceptance rates
+      if (result.submission.status === "Accepted") {
+        setTimeout(() => {
+          // Trigger a refresh of the problem list if we're viewing from there
+          window.dispatchEvent(new CustomEvent('problemSolved'));
+        }, 1000);
+      }
+
     } catch (err: any) {
       console.error("Error submitting solution:", err);
       setOutput(

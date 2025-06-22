@@ -11,4 +11,3 @@ This app uses Docker containers for safely executing code. Follow these steps fo
    docker pull node:16-alpine
    docker pull python:3.9-alpine
    docker pull gcc:11.2
-   docker pull openjdk:17-alpine

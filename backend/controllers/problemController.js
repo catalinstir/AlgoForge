@@ -24,7 +24,7 @@ exports.getAllProblems = async (req, res) => {
     }
 
     const problems = await Problem.find(filter)
-      .select("id title difficulty acceptance")
+      .select("id title difficulty description acceptance totalSubmissions uniqueAttempts uniqueSolvers categories")
       .sort({ id: 1 }) // Sort by ID
       .lean();
 
@@ -143,6 +143,11 @@ exports.createProblem = async (req, res) => {
       categories: categories || [],
       solutionCode: solutionCode || {},
       status: status || "Draft",
+      // Initialize stats
+      totalSubmissions: 0,
+      successfulSubmissions: 0,
+      uniqueAttempts: 0,
+      uniqueSolvers: 0,
     });
 
     if (problem.status === "Published") {
@@ -402,6 +407,8 @@ exports.getProblemStats = async (req, res) => {
         difficulty: problem.difficulty,
         totalSubmissions: problem.totalSubmissions,
         successfulSubmissions: problem.successfulSubmissions,
+        uniqueAttempts: problem.uniqueAttempts,
+        uniqueSolvers: problem.uniqueSolvers,
         acceptance: problem.acceptance,
       },
       statusStats: stats,

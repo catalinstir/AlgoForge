@@ -70,11 +70,21 @@ const problemSchema = new mongoose.Schema(
     publishedDate: {
       type: Date,
     },
+    
+    // Statistics tracking
     totalSubmissions: {
       type: Number,
       default: 0,
     },
     successfulSubmissions: {
+      type: Number,
+      default: 0,
+    },
+    uniqueAttempts: {
+      type: Number,
+      default: 0,
+    },
+    uniqueSolvers: {
       type: Number,
       default: 0,
     },
@@ -103,18 +113,37 @@ problemSchema.virtual("acceptanceRate").get(function () {
   return `${rate.toFixed(1)}%`;
 });
 
-// Update acceptance field before saving
-problemSchema.pre("save", function (next) {
-  if (
-    this.isModified("totalSubmissions") ||
-    this.isModified("successfulSubmissions")
-  ) {
-    if (this.totalSubmissions > 0) {
-      const rate = (this.successfulSubmissions / this.totalSubmissions) * 100;
-      this.acceptance = `${rate.toFixed(1)}%`;
-    }
+// Method to recalculate acceptance rate
+problemSchema.methods.calculateAcceptance = function() {
+  const totalSubmissions = this.totalSubmissions || 0;
+  const successfulSubmissions = this.successfulSubmissions || 0;
+  
+  if (totalSubmissions === 0) {
+    this.acceptance = "0%";
+  } else {
+    const rate = (successfulSubmissions / totalSubmissions) * 100;
+    this.acceptance = `${rate.toFixed(1)}%`;
   }
+  
+  return this.acceptance;
+};
+
+// Pre-save middleware to update acceptance field
+problemSchema.pre("save", function (next) {
+  // Always recalculate acceptance when saving
+  this.calculateAcceptance();
   next();
 });
+
+// Post-save middleware for logging (optional)
+problemSchema.post("save", function(doc) {
+  console.log(`Problem "${doc.title}" saved with acceptance: ${doc.acceptance} (${doc.successfulSubmissions}/${doc.totalSubmissions})`);
+});
+
+// Index for faster queries
+problemSchema.index({ status: 1, difficulty: 1 });
+problemSchema.index({ categories: 1 });
+problemSchema.index({ totalSubmissions: -1 });
+problemSchema.index({ acceptance: -1 });
 
 module.exports = mongoose.model("Problem", problemSchema);

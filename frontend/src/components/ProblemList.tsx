@@ -23,6 +23,19 @@ const ProblemList = () => {
     fetchProblems();
   }, [filter]);
 
+  // Listen for problem solved events to refresh the list
+  useEffect(() => {
+    const handleProblemSolved = () => {
+      console.log("Problem solved event received, refreshing problem list...");
+      fetchProblems();
+    };
+
+    window.addEventListener('problemSolved', handleProblemSolved);
+    return () => {
+      window.removeEventListener('problemSolved', handleProblemSolved);
+    };
+  }, []);
+
   const fetchProblems = async () => {
     setLoading(true);
     setError(null);
@@ -109,6 +122,13 @@ const ProblemList = () => {
       default:
         return "";
     }
+  };
+
+  const formatSubmissions = (totalSubmissions: number): string => {
+    if (totalSubmissions === 0) return "0";
+    if (totalSubmissions < 1000) return totalSubmissions.toString();
+    if (totalSubmissions < 1000000) return `${(totalSubmissions / 1000).toFixed(1)}K`;
+    return `${(totalSubmissions / 1000000).toFixed(1)}M`;
   };
 
   if (loading && problems.length === 0) {
@@ -200,6 +220,18 @@ const ProblemList = () => {
         </div>
       )}
 
+      {/* Show a subtle refresh indicator when loading but problems exist */}
+      {loading && problems.length > 0 && (
+        <div className="alert alert-info py-2 mb-3" role="alert">
+          <div className="d-flex align-items-center">
+            <div className="spinner-border spinner-border-sm text-info me-2" role="status">
+              <span className="visually-hidden">Refreshing...</span>
+            </div>
+            <small>Refreshing problem stats...</small>
+          </div>
+        </div>
+      )}
+
       <div className="table-responsive">
         <table className="table table-dark table-hover align-middle">
           <thead>
@@ -208,6 +240,7 @@ const ProblemList = () => {
               <th scope="col">Title</th>
               <th scope="col">Difficulty</th>
               <th scope="col">Acceptance</th>
+              <th scope="col">Submissions</th>
             </tr>
           </thead>
           <tbody>
@@ -247,13 +280,18 @@ const ProblemList = () => {
                         {problem.difficulty}
                       </span>
                     </td>
-                    <td>{problem.acceptance || "N/A"}</td>
+                    <td>{problem.acceptance || "0%"}</td>
+                    <td>
+                      <span className="text-muted">
+                        {formatSubmissions(problem.totalSubmissions || 0)}
+                      </span>
+                    </td>
                   </tr>
                 );
               })
             ) : (
               <tr>
-                <td colSpan={4} className="text-center py-4">
+                <td colSpan={5} className="text-center py-4">
                   {loading
                     ? "Loading problems..."
                     : "No problems found. Try adjusting your filters."}

@@ -2,9 +2,16 @@ const User = require("../models/User");
 const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
 
-// Generate JWT token
+// Generate JWT token with proper error handling
 const generateToken = (userId) => {
-  return jwt.sign({ userId }, process.env.JWT_SECRET, {
+  const secret = process.env.JWT_SECRET;
+  
+  if (!secret) {
+    console.error("JWT_SECRET environment variable is not set!");
+    throw new Error("JWT_SECRET must be configured in environment variables");
+  }
+  
+  return jwt.sign({ userId }, secret, {
     expiresIn: "7d", // Extended token expiration to 7 days
   });
 };

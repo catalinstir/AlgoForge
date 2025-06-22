@@ -62,53 +62,86 @@ exports.submitSolution = async (req, res) => {
 
     await submission.save();
 
-    // Update problem stats
-    await Problem.findByIdAndUpdate(problemId, {
-      $inc: {
-        totalSubmissions: 1,
-        successfulSubmissions: executionResults.status === "Accepted" ? 1 : 0,
-      },
-    });
-
-    // Update user stats
-    const user = await User.findById(userId);
-
-    if (!user.problemsAttempted.includes(problemId)) {
-      user.problemsAttempted.push(problemId);
-    }
-
-    // If the solution is accepted and user hasn't solved this problem before
-    if (
-      executionResults.status === "Accepted" &&
-      !user.problemsSolved.includes(problemId)
-    ) {
-      user.problemsSolved.push(problemId);
+    // Update user and problem stats (without transactions for local dev)
+    try {
+      // Get user data first
+      const user = await User.findById(userId);
       
-      // Also track this specific problem's difficulty for the user
-      // We'll need to fetch the problem difficulty for user stats
-      const problemForStats = await Problem.findById(problemId).select('difficulty');
-      if (problemForStats) {
-        // Initialize difficulty counters if they don't exist
-        if (!user.solvedByDifficulty) {
-          user.solvedByDifficulty = { Easy: 0, Medium: 0, Hard: 0 };
-        }
-        
-        // Increment the appropriate difficulty counter
-        user.solvedByDifficulty[problemForStats.difficulty] = 
-          (user.solvedByDifficulty[problemForStats.difficulty] || 0) + 1;
+      // Track if this is the user's first attempt at this problem
+      const isFirstAttempt = !user.problemsAttempted.includes(problemId);
+      const wasAlreadySolved = user.problemsSolved.includes(problemId);
+      
+      // Always increment total submissions
+      await User.findByIdAndUpdate(userId, { $inc: { totalSubmissions: 1 } });
+
+      // Add to attempted if first attempt
+      if (isFirstAttempt) {
+        await User.findByIdAndUpdate(userId, { 
+          $addToSet: { problemsAttempted: problemId } 
+        });
       }
+
+      // If the solution is accepted and user hasn't solved this problem before
+      const isNewSolver = executionResults.status === "Accepted" && !wasAlreadySolved;
+      
+      if (isNewSolver) {
+        // Add to solved problems
+        await User.findByIdAndUpdate(userId, { 
+          $addToSet: { problemsSolved: problemId } 
+        });
+        
+        // Update difficulty tracking
+        const difficultyField = `solvedByDifficulty.${problem.difficulty}`;
+        await User.findByIdAndUpdate(userId, { 
+          $inc: { [difficultyField]: 1 } 
+        });
+      }
+
+      // Recalculate success rate
+      const updatedUser = await User.findById(userId);
+      if (updatedUser.problemsAttempted.length > 0) {
+        const successRate = (updatedUser.problemsSolved.length / updatedUser.problemsAttempted.length) * 100;
+        await User.findByIdAndUpdate(userId, { successRate });
+      }
+
+      // Update problem stats - CRITICAL: Use .save() to trigger middleware
+      const problemToUpdate = await Problem.findById(problemId);
+      
+      // Update the stats
+      problemToUpdate.totalSubmissions = (problemToUpdate.totalSubmissions || 0) + 1;
+      
+      if (executionResults.status === "Accepted") {
+        problemToUpdate.successfulSubmissions = (problemToUpdate.successfulSubmissions || 0) + 1;
+      }
+      
+      if (isFirstAttempt) {
+        problemToUpdate.uniqueAttempts = (problemToUpdate.uniqueAttempts || 0) + 1;
+      }
+      
+      if (isNewSolver) {
+        problemToUpdate.uniqueSolvers = (problemToUpdate.uniqueSolvers || 0) + 1;
+      }
+
+      // IMPORTANT: Use .save() to trigger the pre-save middleware that calculates acceptance rate
+      await problemToUpdate.save();
+
+      console.log(`Updated stats for problem ${problemToUpdate.title}:`, {
+        isFirstAttempt,
+        isNewSolver,
+        status: executionResults.status,
+        totalSubmissions: problemToUpdate.totalSubmissions,
+        successfulSubmissions: problemToUpdate.successfulSubmissions,
+        acceptance: problemToUpdate.acceptance
+      });
+
+    } catch (statsError) {
+      console.error("Error updating stats:", statsError);
+      // Don't fail the submission if stats update fails
     }
 
-    user.totalSubmissions += 1;
+    // Get updated user data to return current counts
+    const updatedUser = await User.findById(userId).select('problemsSolved problemsAttempted');
     
-    // Update success rate based on solved vs attempted
-    if (user.problemsAttempted.length > 0) {
-      user.successRate =
-        (user.problemsSolved.length / user.problemsAttempted.length) * 100;
-    }
-
-    await user.save();
-
     // Send response (filter out hidden test cases for the user)
     res.status(201).json({
       submission: {
@@ -121,6 +154,12 @@ exports.submitSolution = async (req, res) => {
         passRate: submission.passRate,
       },
       testResults: executionResults.testResults.filter((test) => !test.hidden),
+      // Include updated user stats for frontend
+      userStats: {
+        problemsSolvedCount: updatedUser.problemsSolved.length,
+        problemsAttemptedCount: updatedUser.problemsAttempted.length,
+        isNewSolve: executionResults.status === "Accepted" && !updatedUser.problemsSolved.includes(problemId)
+      }
     });
   } catch (err) {
     console.error("Error submitting solution:", err);

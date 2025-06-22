@@ -1,37 +1,17 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { User } from "../../types";
+import { problemAPI } from "../../services/api";
 
 interface AdminDashboardProps {
   currentUser: User | null;
 }
 
 const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
-  const [selectedTab, setSelectedTab] = useState("problems"); // Default tab
+  const [selectedTab, setSelectedTab] = useState("problems");
+  const [problems, setProblems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  // --- Mock Data (Replace with API calls) ---
-  const mockProblems = [
-    {
-      id: 1,
-      title: "Two Sum",
-      difficulty: "Easy",
-      acceptance: "47.5%",
-      status: "Published",
-    },
-    {
-      id: 2,
-      title: "Add Two Numbers",
-      difficulty: "Medium",
-      acceptance: "38.2%",
-      status: "Published",
-    },
-    {
-      id: 4,
-      title: "Median of Two Sorted Arrays",
-      difficulty: "Hard",
-      acceptance: "34.0%",
-      status: "Draft",
-    },
-  ];
+  // Mock Users and Submissions data
   const mockUsers = [
     {
       id: 101,
@@ -58,6 +38,7 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
       status: "Banned",
     },
   ];
+
   const mockSubmissions = [
     {
       id: 1001,
@@ -84,7 +65,24 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
       lang: "Java",
     },
   ];
-  // --- End Mock Data ---
+
+  useEffect(() => {
+    if (selectedTab === "problems") {
+      fetchProblems();
+    }
+  }, [selectedTab]);
+
+  const fetchProblems = async () => {
+    setLoading(true);
+    try {
+      const response = await problemAPI.getAllProblems();
+      setProblems(response.data);
+    } catch (error) {
+      console.error("Error fetching problems:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Permission Check: Ensure user is logged in and is an admin
   if (!currentUser || currentUser.role !== "admin") {
@@ -106,7 +104,7 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
         return "bg-success";
       case "draft":
       case "pending":
-        return "bg-warning text-dark"; // Dark text for yellow bg
+        return "bg-warning text-dark";
       case "banned":
       case "rejected":
       case "failed":
@@ -131,9 +129,15 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
     }
   };
 
+  const formatSubmissions = (totalSubmissions: number): string => {
+    if (totalSubmissions === 0) return "0";
+    if (totalSubmissions < 1000) return totalSubmissions.toString();
+    if (totalSubmissions < 1000000) return `${(totalSubmissions / 1000).toFixed(1)}K`;
+    return `${(totalSubmissions / 1000000).toFixed(1)}M`;
+  };
+
   return (
     <div className="admin-dashboard">
-      {/* Use the standard container */}
       <div className="problems-container">
         {/* Dashboard Header */}
         <div className="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom border-secondary">
@@ -196,45 +200,109 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
                   + Add New Problem
                 </button>
               </div>
-              <div className="table-responsive">
-                <table className="table table-dark table-hover table-sm align-middle">
-                  <thead>
-                    <tr>
-                      <th>ID</th>
-                      <th>Title</th>
-                      <th>Difficulty</th>
-                      <th>Acceptance</th>
-                      <th>Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {mockProblems.map((p) => (
-                      <tr key={p.id}>
-                        <td>{p.id}</td>
-                        <td>{p.title}</td>
-                        <td>
-                          <span
-                            className={getDifficultyColorClass(p.difficulty)}
-                          >
-                            {p.difficulty}
-                          </span>
-                        </td>
-                        <td>{p.acceptance}</td>
-                        <td>
-                          <span className={`badge ${getStatusBadge(p.status)}`}>
-                            {p.status}
-                          </span>
-                        </td>
-                        <td>
-                          <button className="btn btn-warning me-1">Edit</button>
-                          <button className="btn btn-danger">Delete</button>
-                        </td>
+              
+              {loading ? (
+                <div className="text-center p-4">
+                  <div className="spinner-border text-primary" role="status">
+                    <span className="visually-hidden">Loading...</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="table-responsive">
+                  <table className="table table-dark table-hover table-sm align-middle">
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Title</th>
+                        <th>Difficulty</th>
+                        <th>Acceptance</th>
+                        <th>Submissions</th>
+                        <th>Solvers</th>
+                        <th>Status</th>
+                        <th>Actions</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {problems.length > 0 ? (
+                        problems.map((problem, index) => (
+                          <tr key={problem._id || problem.id}>
+                            <td>{index + 1}</td>
+                            <td>
+                              <div className="d-flex flex-column">
+                                <span>{problem.title}</span>
+                                {problem.categories && problem.categories.length > 0 && (
+                                  <div className="mt-1">
+                                    {problem.categories.slice(0, 2).map((cat: string, idx: number) => (
+                                      <span key={idx} className="badge bg-info me-1" style={{ fontSize: "0.6rem" }}>
+                                        {cat}
+                                      </span>
+                                    ))}
+                                    {problem.categories.length > 2 && (
+                                      <span className="text-muted" style={{ fontSize: "0.7rem" }}>
+                                        +{problem.categories.length - 2} more
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                            <td>
+                              <span className={getDifficultyColorClass(problem.difficulty)}>
+                                {problem.difficulty}
+                              </span>
+                            </td>
+                            <td>
+                              <div className="d-flex flex-column">
+                                <span className="fw-bold">
+                                  {problem.acceptance || "0%"}
+                                </span>
+                                {problem.totalSubmissions > 0 && (
+                                  <small className="text-muted">
+                                    {problem.successfulSubmissions || 0} / {problem.totalSubmissions || 0}
+                                  </small>
+                                )}
+                              </div>
+                            </td>
+                            <td>
+                              <div className="d-flex flex-column">
+                                <span className="fw-bold">
+                                  {formatSubmissions(problem.totalSubmissions || 0)}
+                                </span>
+                                <small className="text-muted">
+                                  {problem.uniqueAttempts || 0} unique
+                                </small>
+                              </div>
+                            </td>
+                            <td>
+                              <span className="text-success fw-bold">
+                                {problem.uniqueSolvers || 0}
+                              </span>
+                            </td>
+                            <td>
+                              <span className={`badge ${getStatusBadge(problem.status || "Draft")}`}>
+                                {problem.status || "Draft"}
+                              </span>
+                            </td>
+                            <td>
+                              <div className="btn-group" role="group">
+                                <button className="btn btn-warning me-1">Edit</button>
+                                <button className="btn btn-info me-1">Stats</button>
+                                <button className="btn btn-danger">Delete</button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={8} className="text-center py-3">
+                            No problems found
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
 

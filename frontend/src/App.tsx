@@ -97,6 +97,16 @@ const AppContent = () => {
     }
   }, []);
 
+  const handleUserStatsUpdate = useCallback((newStats: { problemsSolvedCount: number; problemsAttemptedCount: number }) => {
+    if (currentUser) {
+      setCurrentUser(prev => prev ? {
+        ...prev,
+        problemsSolvedCount: newStats.problemsSolvedCount,
+        problemsAttemptedCount: newStats.problemsAttemptedCount
+      } : null);
+    }
+  }, [currentUser]);
+
   useEffect(() => {
     const checkAuth = async () => {
       const token = localStorage.getItem("authToken");
@@ -112,6 +122,20 @@ const AppContent = () => {
     };
     checkAuth();
   }, [fetchUserData]);
+
+  // Listen for problem solved events to refresh user data
+  useEffect(() => {
+    const handleProblemSolved = () => {
+      if (isLoggedIn) {
+        fetchUserData();
+      }
+    };
+
+    window.addEventListener('problemSolved', handleProblemSolved);
+    return () => {
+      window.removeEventListener('problemSolved', handleProblemSolved);
+    };
+  }, [isLoggedIn, fetchUserData]);
 
   const handleLoginClick = () => {
     navigate("/login");
@@ -212,7 +236,12 @@ const AppContent = () => {
             />
             <Route
               path="/problem/:problemId"
-              element={<ProblemDetails currentUser={currentUser} />}
+              element={
+                <ProblemDetails 
+                  currentUser={currentUser} 
+                  onUserStatsUpdate={handleUserStatsUpdate}
+                />
+              }
             />
             <Route
               path="/browse"

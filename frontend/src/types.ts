@@ -37,6 +37,11 @@ export interface Problem {
   testCases?: TestCase[];
   inputFormat?: string;
   outputFormat?: string;
+  // Statistics
+  totalSubmissions?: number;
+  successfulSubmissions?: number;
+  uniqueAttempts?: number;
+  uniqueSolvers?: number;
   // Suggested includes/imports for each language
   suggestedIncludes?: {
     cpp?: string[];
