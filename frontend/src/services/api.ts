@@ -185,13 +185,23 @@ export const submissionAPI = {
   // Get submission by ID
   getSubmission: (submissionId: string): Promise<AxiosResponse<any>> => 
     apiClient.get(`/api/submissions/${submissionId}`),
-  
+
   // Admin function to get all submissions for a problem
   getProblemSubmissions: (
     problemId: string, 
     params?: PaginationParams
   ): Promise<AxiosResponse<any>> => 
     apiClient.get(`/api/submissions/problem/${problemId}`, { params }),
+
+  // NEW: Admin functions for submission management
+  getAllSubmissions: (params?: AdminSubmissionFilterParams): Promise<AxiosResponse<any>> => 
+    apiClient.get('/api/submissions/admin/all', { params }),
+  
+  getSubmissionDetails: (submissionId: string): Promise<AxiosResponse<any>> => 
+    apiClient.get(`/api/submissions/admin/details/${submissionId}`),
+  
+  deleteSubmission: (submissionId: string): Promise<AxiosResponse<any>> => 
+    apiClient.delete(`/api/submissions/admin/${submissionId}`),
 };
 
 // Problem Request API

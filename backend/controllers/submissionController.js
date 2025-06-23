@@ -343,3 +343,212 @@ exports.getProblemSubmissions = async (req, res) => {
     res.status(500).json({ error: "Failed to fetch submissions." });
   }
 };
+
+exports.getAllSubmissions = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { 
+      status, 
+      language, 
+      problemId, 
+      userId: filterUserId,
+      limit = 20, 
+      page = 1 
+    } = req.query;
+
+    // Check if user is admin
+    const user = await User.findById(userId);
+    if (!user || user.role !== "admin") {
+      return res.status(403).json({ error: "Access denied. Admin only." });
+    }
+
+    // Build query
+    const query = {};
+    
+    if (status) {
+      query.status = status;
+    }
+    
+    if (language) {
+      query.language = language;
+    }
+    
+    if (problemId) {
+      if (mongoose.Types.ObjectId.isValid(problemId)) {
+        query.problem = problemId;
+      } else {
+        // If not a valid ObjectId, search by problem title
+        const problems = await Problem.find({ 
+          title: { $regex: problemId, $options: "i" } 
+        }).select('_id');
+        query.problem = { $in: problems.map(p => p._id) };
+      }
+    }
+    
+    if (filterUserId) {
+      if (mongoose.Types.ObjectId.isValid(filterUserId)) {
+        query.user = filterUserId;
+      } else {
+        // If not a valid ObjectId, search by username
+        const users = await User.find({ 
+          username: { $regex: filterUserId, $options: "i" } 
+        }).select('_id');
+        query.user = { $in: users.map(u => u._id) };
+      }
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const submissions = await Submission.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit))
+      .populate("user", "username email")
+      .populate("problem", "title difficulty")
+      .select("-code") // Don't include the actual code for privacy
+      .lean();
+
+    const totalSubmissions = await Submission.countDocuments(query);
+
+    res.json({
+      submissions,
+      pagination: {
+        total: totalSubmissions,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        pages: Math.ceil(totalSubmissions / parseInt(limit)),
+      },
+    });
+  } catch (err) {
+    console.error("Error fetching all submissions:", err);
+    res.status(500).json({ error: "Failed to fetch submissions." });
+  }
+};
+
+// Add this method for deleting submissions (admin only)
+exports.deleteSubmission = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const submissionId = req.params.id;
+
+    // Check if user is admin
+    const user = await User.findById(userId);
+    if (!user || user.role !== "admin") {
+      return res.status(403).json({ error: "Access denied. Admin only." });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(submissionId)) {
+      return res.status(400).json({ error: "Invalid submission ID." });
+    }
+
+    const submission = await Submission.findById(submissionId);
+    if (!submission) {
+      return res.status(404).json({ error: "Submission not found." });
+    }
+
+    // Delete the submission
+    await Submission.findByIdAndDelete(submissionId);
+
+    // Update user stats if this was an accepted submission
+    if (submission.status === "Accepted") {
+      const submissionUser = await User.findById(submission.user);
+      if (submissionUser) {
+        // Check if this was the user's only accepted submission for this problem
+        const otherAcceptedSubmissions = await Submission.countDocuments({
+          user: submission.user,
+          problem: submission.problem,
+          status: "Accepted",
+          _id: { $ne: submissionId }
+        });
+
+        if (otherAcceptedSubmissions === 0) {
+          // Remove from solved problems
+          await User.findByIdAndUpdate(submission.user, {
+            $pull: { problemsSolved: submission.problem }
+          });
+
+          // Update difficulty tracking
+          const problem = await Problem.findById(submission.problem);
+          if (problem) {
+            const difficultyField = `solvedByDifficulty.${problem.difficulty}`;
+            await User.findByIdAndUpdate(submission.user, {
+              $inc: { [difficultyField]: -1 }
+            });
+
+            // Update problem stats
+            problem.uniqueSolvers = Math.max(0, (problem.uniqueSolvers || 1) - 1);
+            await problem.save();
+          }
+        }
+
+        // Update total submissions count
+        await User.findByIdAndUpdate(submission.user, {
+          $inc: { totalSubmissions: -1 }
+        });
+
+        // Recalculate success rate
+        const updatedUser = await User.findById(submission.user);
+        if (updatedUser.problemsAttempted.length > 0) {
+          const successRate = (updatedUser.problemsSolved.length / updatedUser.problemsAttempted.length) * 100;
+          await User.findByIdAndUpdate(submission.user, { successRate });
+        }
+      }
+    }
+
+    // Update problem submission stats
+    const problem = await Problem.findById(submission.problem);
+    if (problem) {
+      problem.totalSubmissions = Math.max(0, (problem.totalSubmissions || 1) - 1);
+      if (submission.status === "Accepted") {
+        problem.successfulSubmissions = Math.max(0, (problem.successfulSubmissions || 1) - 1);
+      }
+      await problem.save(); // This will trigger acceptance rate recalculation
+    }
+
+    res.json({ 
+      message: "Submission deleted successfully.",
+      deletedSubmission: {
+        id: submission._id,
+        user: submission.user,
+        problem: submission.problem,
+        status: submission.status
+      }
+    });
+  } catch (err) {
+    console.error("Error deleting submission:", err);
+    res.status(500).json({ error: "Failed to delete submission." });
+  }
+};
+
+// Add this method for getting submission details (admin only)
+exports.getSubmissionDetails = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const submissionId = req.params.id;
+
+    if (!mongoose.Types.ObjectId.isValid(submissionId)) {
+      return res.status(400).json({ error: "Invalid submission ID." });
+    }
+
+    const submission = await Submission.findById(submissionId)
+      .populate("user", "username email role")
+      .populate("problem", "title difficulty description")
+      .lean();
+
+    if (!submission) {
+      return res.status(404).json({ error: "Submission not found." });
+    }
+
+    const user = await User.findById(userId);
+
+    // Allow access if user is admin or if it's their own submission
+    if (submission.user._id.toString() !== userId && (!user || user.role !== "admin")) {
+      return res.status(403).json({ error: "Access denied." });
+    }
+
+    res.json(submission);
+  } catch (err) {
+    console.error("Error fetching submission details:", err);
+    res.status(500).json({ error: "Failed to fetch submission details." });
+  }
+};

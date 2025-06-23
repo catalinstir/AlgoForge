@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { User } from "../../types";
 import { userAPI } from "../../services/api";
+import UserSubmissions from "../../components/UserSubmissions"; // NEW IMPORT
 
 interface ProfileProps {
   user: User | null;
@@ -162,12 +163,21 @@ const Profile = ({ user }: ProfileProps) => {
                 Solved Problems
               </button>
             </li>
+            {/* NEW: Submissions Tab */}
+            <li className="nav-item">
+              <button
+                className={`nav-link ${activeTab === "submissions" ? "active" : ""}`}
+                onClick={() => setActiveTab("submissions")}
+              >
+                My Submissions
+              </button>
+            </li>
             <li className="nav-item">
               <button
                 className={`nav-link ${
-                  activeTab === "submissions" ? "active" : ""
+                  activeTab === "statistics" ? "active" : ""
                 }`}
-                onClick={() => setActiveTab("submissions")}
+                onClick={() => setActiveTab("statistics")}
               >
                 Statistics
               </button>
@@ -416,7 +426,14 @@ const Profile = ({ user }: ProfileProps) => {
               </div>
             )}
 
+            {/* NEW: Submissions Tab */}
             {activeTab === "submissions" && (
+              <div className="tab-pane fade show active">
+                <UserSubmissions user={user} />
+              </div>
+            )}
+
+            {activeTab === "statistics" && (
               <div className="tab-pane fade show active">
                 <h5 className="mb-3">Submission Statistics</h5>
                 

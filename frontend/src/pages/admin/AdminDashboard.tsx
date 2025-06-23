@@ -1,76 +1,72 @@
 import React, { useState, useEffect } from "react";
 import { User } from "../../types";
-import { problemAPI } from "../../services/api";
+import { problemAPI, submissionAPI } from "../../services/api";
 
 interface AdminDashboardProps {
   currentUser: User | null;
 }
 
+interface AdminSubmission {
+  _id: string;
+  user: {
+    _id: string;
+    username: string;
+  };
+  problem: {
+    _id: string;
+    title: string;
+    difficulty: string;
+  };
+  status: string;
+  language: string;
+  executionTime: number;
+  memoryUsed: number;
+  testCasesPassed: number;
+  totalTestCases: number;
+  createdAt: string;
+  passRate?: number;
+}
+
 const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
   const [selectedTab, setSelectedTab] = useState("problems");
   const [problems, setProblems] = useState<any[]>([]);
+  const [submissions, setSubmissions] = useState<AdminSubmission[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-
-  // Mock Users and Submissions data
-  const mockUsers = [
-    {
-      id: 101,
-      username: "admin",
-      role: "admin",
-      solved: 10,
-      total: 10,
-      status: "Active",
-    },
-    {
-      id: 102,
-      username: "user123",
-      role: "user",
-      solved: 5,
-      total: 10,
-      status: "Active",
-    },
-    {
-      id: 103,
-      username: "newbie_dev",
-      role: "user",
-      solved: 1,
-      total: 10,
-      status: "Banned",
-    },
-  ];
-
-  const mockSubmissions = [
-    {
-      id: 1001,
-      user: "user123",
-      problem: "Two Sum",
-      status: "Accepted",
-      date: "2025-04-17",
-      lang: "C++",
-    },
-    {
-      id: 1002,
-      user: "newbie_dev",
-      problem: "Add Two Numbers",
-      status: "Wrong Answer",
-      date: "2025-04-16",
-      lang: "Python",
-    },
-    {
-      id: 1003,
-      user: "admin",
-      problem: "Two Sum",
-      status: "Accepted",
-      date: "2025-04-15",
-      lang: "Java",
-    },
-  ];
+  const [submissionsLoading, setSubmissionsLoading] = useState(false);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [submissionFilters, setSubmissionFilters] = useState({
+    status: "",
+    language: "",
+    problemId: "",
+    userId: "",
+  });
+  const [userFilters, setUserFilters] = useState({
+    search: "",
+    role: "",
+  });
+  const [submissionPagination, setSubmissionPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    pages: 0,
+  });
+  const [userPagination, setUserPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    pages: 0,
+  });
 
   useEffect(() => {
     if (selectedTab === "problems") {
       fetchProblems();
+    } else if (selectedTab === "submissions") {
+      fetchSubmissions();
+    } else if (selectedTab === "users") {
+      fetchUsers();
     }
-  }, [selectedTab]);
+  }, [selectedTab, submissionFilters, submissionPagination.page, userFilters, userPagination.page]);
 
   const fetchProblems = async () => {
     setLoading(true);
@@ -81,6 +77,149 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
       console.error("Error fetching problems:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchUsers = async () => {
+    setUsersLoading(true);
+    try {
+      const params: any = {
+        page: userPagination.page,
+        limit: userPagination.limit,
+      };
+      
+      if (userFilters.search) params.search = userFilters.search;
+      if (userFilters.role) params.role = userFilters.role;
+
+      const response = await userAPI.getAllUsers(params);
+      setUsers(response.data.users);
+      setUserPagination(prev => ({
+        ...prev,
+        total: response.data.pagination.total,
+        pages: response.data.pagination.pages,
+      }));
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    } finally {
+      setUsersLoading(false);
+    }
+  };
+
+  const fetchSubmissions = async () => {
+    setSubmissionsLoading(true);
+    try {
+      const params: any = {
+        page: submissionPagination.page,
+        limit: submissionPagination.limit,
+      };
+      
+      if (submissionFilters.status) params.status = submissionFilters.status;
+      if (submissionFilters.language) params.language = submissionFilters.language;
+      if (submissionFilters.problemId) params.problemId = submissionFilters.problemId;
+      if (submissionFilters.userId) params.userId = submissionFilters.userId;
+
+      const response = await submissionAPI.getAllSubmissions(params);
+      setSubmissions(response.data.submissions);
+      setSubmissionPagination(prev => ({
+        ...prev,
+        total: response.data.pagination.total,
+        pages: response.data.pagination.pages,
+      }));
+    } catch (error) {
+      console.error("Error fetching submissions:", error);
+    } finally {
+      setSubmissionsLoading(false);
+    }
+  };
+
+  const handleSubmissionFilterChange = (
+    e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>
+  ) => {
+    const { name, value } = e.target;
+    setSubmissionFilters(prev => ({ ...prev, [name]: value }));
+    setSubmissionPagination(prev => ({ ...prev, page: 1 }));
+  };
+
+  const handleSubmissionPageChange = (newPage: number) => {
+    setSubmissionPagination(prev => ({ ...prev, page: newPage }));
+  };
+
+  const clearSubmissionFilters = () => {
+    setSubmissionFilters({
+      status: "",
+      language: "",
+      problemId: "",
+      userId: "",
+    });
+    setSubmissionPagination(prev => ({ ...prev, page: 1 }));
+  };
+
+  const handleUserFilterChange = (
+    e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>
+  ) => {
+    const { name, value } = e.target;
+    setUserFilters(prev => ({ ...prev, [name]: value }));
+    setUserPagination(prev => ({ ...prev, page: 1 }));
+  };
+
+  const handleUserPageChange = (newPage: number) => {
+    setUserPagination(prev => ({ ...prev, page: newPage }));
+  };
+
+  const clearUserFilters = () => {
+    setUserFilters({
+      search: "",
+      role: "",
+    });
+    setUserPagination(prev => ({ ...prev, page: 1 }));
+  };
+
+  const handleBanUser = async (userId: string, currentStatus: string) => {
+    const action = currentStatus === "Banned" ? "unban" : "ban";
+    if (!window.confirm(`Are you sure you want to ${action} this user?`)) {
+      return;
+    }
+
+    try {
+      // This would require implementing a ban/unban endpoint
+      // For now, just show an alert
+      alert(`User ${action} functionality would be implemented here.`);
+      // await userAPI.banUser(userId, action === "ban");
+      // fetchUsers();
+    } catch (error) {
+      console.error(`Error ${action}ning user:`, error);
+      alert(`Failed to ${action} user. Please try again.`);
+    }
+  };
+
+  const handleUpdateUserRole = async (userId: string, newRole: string) => {
+    if (!window.confirm(`Are you sure you want to change this user's role to ${newRole}?`)) {
+      return;
+    }
+
+    try {
+      await userAPI.updateUserRole(userId, { role: newRole });
+      fetchUsers();
+      alert("User role updated successfully.");
+    } catch (error) {
+      console.error("Error updating user role:", error);
+      alert("Failed to update user role. Please try again.");
+    }
+  };
+
+  const handleDeleteSubmission = async (submissionId: string) => {
+    if (!window.confirm("Are you sure you want to delete this submission? This action cannot be undone.")) {
+      return;
+    }
+
+    try {
+      await submissionAPI.deleteSubmission(submissionId);
+      // Refresh the submissions list
+      fetchSubmissions();
+      alert("Submission deleted successfully.");
+    } catch (error) {
+      console.error("Error deleting submission:", error);
+      alert("Failed to delete submission. Please try again.");
     }
   };
 
@@ -310,68 +449,211 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
           {selectedTab === "users" && (
             <div className="tab-pane fade show active">
               <div className="d-flex justify-content-between align-items-center mb-3">
-                <h4 className="text-light mb-0">Users</h4>
-                <div className="input-group" style={{ maxWidth: "300px" }}>
+                <h4 className="text-light mb-0">Users ({userPagination.total})</h4>
+                <button 
+                  className="btn btn-outline-secondary btn-sm"
+                  onClick={clearUserFilters}
+                >
+                  Clear Filters
+                </button>
+              </div>
+
+              {/* User Filters */}
+              <div className="row mb-4">
+                <div className="col-md-6">
                   <input
                     type="text"
-                    className="form-control"
-                    placeholder="Search users..."
-                    aria-label="Search users"
+                    className="form-control form-control-sm bg-dark text-light border-secondary"
+                    placeholder="Search by username or email..."
+                    name="search"
+                    value={userFilters.search}
+                    onChange={handleUserFilterChange}
                   />
-                  <button className="btn btn-info">Search</button>
+                </div>
+                <div className="col-md-6">
+                  <select
+                    className="form-select form-select-sm bg-dark text-light border-secondary"
+                    name="role"
+                    value={userFilters.role}
+                    onChange={handleUserFilterChange}
+                  >
+                    <option value="">All Roles</option>
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                    <option value="guest">Guest</option>
+                  </select>
                 </div>
               </div>
-              <div className="table-responsive">
-                <table className="table table-dark table-hover table-sm align-middle">
-                  <thead>
-                    <tr>
-                      <th>ID</th>
-                      <th>Username</th>
-                      <th>Role</th>
-                      <th>Solved</th>
-                      <th>Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {mockUsers.map((u) => (
-                      <tr key={u.id}>
-                        <td>{u.id}</td>
-                        <td>{u.username}</td>
-                        <td>
-                          <span
-                            className={`badge ${
-                              u.role === "admin" ? "bg-danger" : "bg-info"
-                            }`}
-                          >
-                            {u.role}
-                          </span>
-                        </td>
-                        <td>
-                          {u.solved}/{u.total}
-                        </td>
-                        <td>
-                          <span className={`badge ${getStatusBadge(u.status)}`}>
-                            {u.status}
-                          </span>
-                        </td>
-                        <td>
-                          <button className="btn btn-warning me-1">Edit</button>
+
+              {usersLoading ? (
+                <div className="text-center p-4">
+                  <div className="spinner-border text-primary" role="status">
+                    <span className="visually-hidden">Loading...</span>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="table-responsive">
+                    <table className="table table-dark table-hover table-sm align-middle">
+                      <thead>
+                        <tr>
+                          <th>User</th>
+                          <th>Role</th>
+                          <th>Progress</th>
+                          <th>Success Rate</th>
+                          <th>Joined</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {users.length > 0 ? (
+                          users.map((user) => (
+                            <tr key={user._id}>
+                              <td>
+                                <div className="d-flex flex-column">
+                                  <span className="fw-bold">{user.username}</span>
+                                  <small className="text-muted">{user.email}</small>
+                                </div>
+                              </td>
+                              <td>
+                                <span
+                                  className={`badge ${
+                                    user.role === "admin" ? "bg-danger" : 
+                                    user.role === "user" ? "bg-info" : "bg-secondary"
+                                  }`}
+                                >
+                                  {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                                </span>
+                              </td>
+                              <td>
+                                <div className="d-flex flex-column">
+                                  <span className="fw-bold">
+                                    {user.problemsSolved?.length || 0} solved
+                                  </span>
+                                  <small className="text-muted">
+                                    {user.problemsAttempted?.length || 0} attempted
+                                  </small>
+                                </div>
+                              </td>
+                              <td>
+                                <span className="text-success fw-bold">
+                                  {user.successRate?.toFixed(1) || 0}%
+                                </span>
+                              </td>
+                              <td>
+                                <small className="text-muted">
+                                  {new Date(user.createdAt).toLocaleDateString()}
+                                </small>
+                              </td>
+                              <td>
+                                <div className="btn-group" role="group">
+                                  <button 
+                                    className="btn btn-info btn-sm"
+                                    title="View profile"
+                                    onClick={() => window.open(`/profile/${user._id}`, '_blank')}
+                                  >
+                                    <i className="bi bi-person"></i>
+                                  </button>
+                                  <div className="dropdown">
+                                    <button 
+                                      className="btn btn-warning btn-sm dropdown-toggle"
+                                      type="button"
+                                      data-bs-toggle="dropdown"
+                                      title="Change role"
+                                    >
+                                      <i className="bi bi-gear"></i>
+                                    </button>
+                                    <ul className="dropdown-menu dropdown-menu-dark">
+                                      <li>
+                                        <button 
+                                          className="dropdown-item"
+                                          onClick={() => handleUpdateUserRole(user._id, "user")}
+                                          disabled={user.role === "user"}
+                                        >
+                                          Make User
+                                        </button>
+                                      </li>
+                                      <li>
+                                        <button 
+                                          className="dropdown-item"
+                                          onClick={() => handleUpdateUserRole(user._id, "admin")}
+                                          disabled={user.role === "admin"}
+                                        >
+                                          Make Admin
+                                        </button>
+                                      </li>
+                                    </ul>
+                                  </div>
+                                  <button 
+                                    className="btn btn-danger btn-sm"
+                                    title="Ban/Unban user"
+                                    onClick={() => handleBanUser(user._id, user.status || "Active")}
+                                  >
+                                    <i className="bi bi-ban"></i>
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={6} className="text-center py-3">
+                              No users found
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* User Pagination */}
+                  {userPagination.pages > 1 && (
+                    <nav aria-label="Users pagination" className="mt-4">
+                      <ul className="pagination justify-content-center">
+                        <li className={`page-item ${userPagination.page === 1 ? "disabled" : ""}`}>
                           <button
-                            className={`btn ${
-                              u.status === "Banned"
-                                ? "btn-success"
-                                : "btn-danger"
-                            }`}
+                            className="page-link bg-dark text-light border-secondary"
+                            onClick={() => handleUserPageChange(userPagination.page - 1)}
+                            disabled={userPagination.page === 1}
                           >
-                            {u.status === "Banned" ? "Unban" : "Ban"}
+                            Previous
                           </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                        </li>
+                        
+                        {Array.from({ length: Math.min(5, userPagination.pages) }, (_, i) => {
+                          const startPage = Math.max(1, userPagination.page - 2);
+                          const pageNum = startPage + i;
+                          if (pageNum > userPagination.pages) return null;
+                          
+                          return (
+                            <li
+                              key={pageNum}
+                              className={`page-item ${userPagination.page === pageNum ? "active" : ""}`}
+                            >
+                              <button
+                                className="page-link bg-dark text-light border-secondary"
+                                onClick={() => handleUserPageChange(pageNum)}
+                              >
+                                {pageNum}
+                              </button>
+                            </li>
+                          );
+                        })}
+                        
+                        <li className={`page-item ${userPagination.page === userPagination.pages ? "disabled" : ""}`}>
+                          <button
+                            className="page-link bg-dark text-light border-secondary"
+                            onClick={() => handleUserPageChange(userPagination.page + 1)}
+                            disabled={userPagination.page === userPagination.pages}
+                          >
+                            Next
+                          </button>
+                        </li>
+                      </ul>
+                    </nav>
+                  )}
+                </>
+              )}
             </div>
           )}
 
@@ -379,46 +661,224 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
           {selectedTab === "submissions" && (
             <div className="tab-pane fade show active">
               <div className="d-flex justify-content-between align-items-center mb-3">
-                <h4 className="text-light mb-0">Recent Submissions</h4>
-                <div>
-                  <button className="btn btn-secondary me-2">Filter</button>
-                  <button className="btn btn-info">Export</button>
+                <h4 className="text-light mb-0">All Submissions</h4>
+                <div className="d-flex gap-2">
+                  <button 
+                    className="btn btn-outline-secondary btn-sm"
+                    onClick={clearSubmissionFilters}
+                  >
+                    Clear Filters
+                  </button>
+                  <button className="btn btn-info btn-sm">Export CSV</button>
                 </div>
               </div>
-              <div className="table-responsive">
-                <table className="table table-dark table-hover table-sm align-middle">
-                  <thead>
-                    <tr>
-                      <th>ID</th>
-                      <th>User</th>
-                      <th>Problem</th>
-                      <th>Language</th>
-                      <th>Status</th>
-                      <th>Date</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {mockSubmissions.map((s) => (
-                      <tr key={s.id}>
-                        <td>{s.id}</td>
-                        <td>{s.user}</td>
-                        <td>{s.problem}</td>
-                        <td>{s.lang}</td>
-                        <td>
-                          <span className={`badge ${getStatusBadge(s.status)}`}>
-                            {s.status}
-                          </span>
-                        </td>
-                        <td>{s.date}</td>
-                        <td>
-                          <button className="btn btn-info">View</button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+
+              {/* Submission Filters */}
+              <div className="row mb-4">
+                <div className="col-md-3">
+                  <select
+                    className="form-select form-select-sm bg-dark text-light border-secondary"
+                    name="status"
+                    value={submissionFilters.status}
+                    onChange={handleSubmissionFilterChange}
+                  >
+                    <option value="">All Status</option>
+                    <option value="Accepted">Accepted</option>
+                    <option value="Wrong Answer">Wrong Answer</option>
+                    <option value="Time Limit Exceeded">Time Limit Exceeded</option>
+                    <option value="Runtime Error">Runtime Error</option>
+                    <option value="Compilation Error">Compilation Error</option>
+                  </select>
+                </div>
+                <div className="col-md-3">
+                  <select
+                    className="form-select form-select-sm bg-dark text-light border-secondary"
+                    name="language"
+                    value={submissionFilters.language}
+                    onChange={handleSubmissionFilterChange}
+                  >
+                    <option value="">All Languages</option>
+                    <option value="cpp">C++</option>
+                    <option value="python">Python</option>
+                    <option value="javascript">JavaScript</option>
+                    <option value="java">Java</option>
+                  </select>
+                </div>
+                <div className="col-md-3">
+                  <input
+                    type="text"
+                    className="form-control form-control-sm bg-dark text-light border-secondary"
+                    placeholder="Username filter..."
+                    name="userId"
+                    value={submissionFilters.userId}
+                    onChange={handleSubmissionFilterChange}
+                  />
+                </div>
+                <div className="col-md-3">
+                  <input
+                    type="text"
+                    className="form-control form-control-sm bg-dark text-light border-secondary"
+                    placeholder="Problem filter..."
+                    name="problemId"
+                    value={submissionFilters.problemId}
+                    onChange={handleSubmissionFilterChange}
+                  />
+                </div>
               </div>
+
+              {submissionsLoading ? (
+                <div className="text-center p-4">
+                  <div className="spinner-border text-primary" role="status">
+                    <span className="visually-hidden">Loading...</span>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="table-responsive">
+                    <table className="table table-dark table-hover table-sm align-middle">
+                      <thead>
+                        <tr>
+                          <th>User</th>
+                          <th>Problem</th>
+                          <th>Status</th>
+                          <th>Language</th>
+                          <th>Score</th>
+                          <th>Time</th>
+                          <th>Submitted</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {submissions.length > 0 ? (
+                          submissions.map((submission) => (
+                            <tr key={submission._id}>
+                              <td>
+                                <div className="d-flex align-items-center">
+                                  <span className="fw-bold">{submission.user.username}</span>
+                                </div>
+                              </td>
+                              <td>
+                                <div>
+                                  <div className="fw-bold">{submission.problem.title}</div>
+                                  <small className={getDifficultyColorClass(submission.problem.difficulty)}>
+                                    {submission.problem.difficulty}
+                                  </small>
+                                </div>
+                              </td>
+                              <td>
+                                <span className={`badge ${getStatusBadge(submission.status)}`}>
+                                  {submission.status}
+                                </span>
+                              </td>
+                              <td>
+                                <span className="badge bg-info">
+                                  {submission.language.toUpperCase()}
+                                </span>
+                              </td>
+                              <td>
+                                <span className="fw-bold">
+                                  {submission.testCasesPassed}/{submission.totalTestCases}
+                                </span>
+                              </td>
+                              <td>
+                                <span className="text-muted">
+                                  {submission.executionTime}ms
+                                </span>
+                              </td>
+                              <td>
+                                <small className="text-muted">
+                                  {new Date(submission.createdAt).toLocaleString()}
+                                </small>
+                              </td>
+                              <td>
+                                <div className="btn-group" role="group">
+                                  <button 
+                                    className="btn btn-info btn-sm"
+                                    title="View problem"
+                                    onClick={() => window.open(`/problem/${submission.problem._id}`, '_blank')}
+                                  >
+                                    <i className="bi bi-file-earmark-text me-1"></i>
+                                    Problem
+                                  </button>
+                                  <button 
+                                    className="btn btn-warning btn-sm"
+                                    title="View user profile"
+                                    onClick={() => window.open(`/profile/${submission.user._id}`, '_blank')}
+                                  >
+                                    <i className="bi bi-person me-1"></i>
+                                    User
+                                  </button>
+                                  <button 
+                                    className="btn btn-danger btn-sm"
+                                    title="Delete submission"
+                                    onClick={() => handleDeleteSubmission(submission._id)}
+                                  >
+                                    <i className="bi bi-trash me-1"></i>
+                                    Delete
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={7} className="text-center py-3">
+                              No submissions found
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Submission Pagination */}
+                  {submissionPagination.pages > 1 && (
+                    <nav aria-label="Submissions pagination" className="mt-4">
+                      <ul className="pagination justify-content-center">
+                        <li className={`page-item ${submissionPagination.page === 1 ? "disabled" : ""}`}>
+                          <button
+                            className="page-link bg-dark text-light border-secondary"
+                            onClick={() => handleSubmissionPageChange(submissionPagination.page - 1)}
+                            disabled={submissionPagination.page === 1}
+                          >
+                            Previous
+                          </button>
+                        </li>
+                        
+                        {Array.from({ length: Math.min(5, submissionPagination.pages) }, (_, i) => {
+                          const startPage = Math.max(1, submissionPagination.page - 2);
+                          const pageNum = startPage + i;
+                          if (pageNum > submissionPagination.pages) return null;
+                          
+                          return (
+                            <li
+                              key={pageNum}
+                              className={`page-item ${submissionPagination.page === pageNum ? "active" : ""}`}
+                            >
+                              <button
+                                className="page-link bg-dark text-light border-secondary"
+                                onClick={() => handleSubmissionPageChange(pageNum)}
+                              >
+                                {pageNum}
+                              </button>
+                            </li>
+                          );
+                        })}
+                        
+                        <li className={`page-item ${submissionPagination.page === submissionPagination.pages ? "disabled" : ""}`}>
+                          <button
+                            className="page-link bg-dark text-light border-secondary"
+                            onClick={() => handleSubmissionPageChange(submissionPagination.page + 1)}
+                            disabled={submissionPagination.page === submissionPagination.pages}
+                          >
+                            Next
+                          </button>
+                        </li>
+                      </ul>
+                    </nav>
+                  )}
+                </>
+              )}
             </div>
           )}
         </div>

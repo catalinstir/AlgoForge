@@ -113,3 +113,16 @@ export interface ProblemReviewData {
 export interface UserRoleUpdateData {
   role: 'guest' | 'user' | 'admin';
 }
+
+export interface AdminSubmissionFilterParams extends PaginationParams {
+  status?: string;
+  language?: string;
+  problemId?: string;
+  userId?: string;
+}
+
+export interface SubmissionFilterParams extends PaginationParams {
+  problemId?: string;
+  status?: string;
+  language?: string;
+}
