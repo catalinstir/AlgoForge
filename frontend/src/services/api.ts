@@ -49,26 +49,27 @@ apiClient.interceptors.request.use(
 // Add a response interceptor to handle 401 Unauthorized errors
 apiClient.interceptors.response.use(
   (response) => {
-    // For debugging
     console.log(`API Response: ${response.status} for ${response.config.url}`);
     return response;
   },
   (error) => {
-    // Handle unauthorized errors (e.g., token expired)
+    // Only redirect to login if it's a 401 AND we're not already on the login page
     if (error.response && error.response.status === 401) {
-      // Log out user
-      localStorage.removeItem('authToken');
-      // You could also redirect to login or trigger a global event
-      window.location.href = '/login?session_expired=true';
+      const currentPath = window.location.pathname;
+      
+      // Don't redirect if we're already on login/register pages
+      if (!currentPath.includes('/login')) {
+        console.log('Session expired, redirecting to login...');
+        localStorage.removeItem('authToken');
+        window.location.href = '/login?session_expired=true';
+      }
     }
     
-    // Log detailed error information
     console.error('API Error:', {
       url: error.config?.url,
       method: error.config?.method,
       status: error.response?.status,
       data: error.response?.data,
-      baseURL: error.config?.baseURL
     });
     
     return Promise.reject(error);

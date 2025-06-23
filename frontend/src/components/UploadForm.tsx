@@ -268,70 +268,145 @@ const ProblemUploadForm = ({ onSuccess }: ProblemUploadFormProps) => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  
+  console.log("=== SUBMIT ATTEMPT ===");
+  console.log("Current step:", step);
+  
+  if (!validateCurrentStep()) {
+    console.log("Validation failed at step", step);
+    return;
+  }
 
-    if (!validateCurrentStep()) {
-      return;
-    }
+  setLoading(true);
+  setError(null);
+  setSuccess(null);
 
-    setLoading(true);
-    setError(null);
-    setSuccess(null);
+  try {
+    const cleanedConstraints = constraints.filter((c) => c.trim() !== "");
+    const cleanedExamples = examples.map((example) => ({
+      input: example.input.trim(),
+      output: example.output.trim(),
+      ...(example.explanation?.trim()
+        ? { explanation: example.explanation.trim() }
+        : {}),
+    }));
+    const cleanedTestCases = testCases.map((testCase) => ({
+      input: testCase.input.trim(),
+      output: testCase.output.trim(),
+      isHidden: testCase.isHidden,
+    }));
 
-    try {
-      const cleanedConstraints = constraints.filter((c) => c.trim() !== "");
-      const cleanedExamples = examples.map((example) => ({
-        input: example.input.trim(),
-        output: example.output.trim(),
-        ...(example.explanation?.trim()
-          ? { explanation: example.explanation.trim() }
-          : {}),
-      }));
-      const cleanedTestCases = testCases.map((testCase) => ({
-        input: testCase.input.trim(),
-        output: testCase.output.trim(),
-        isHidden: testCase.isHidden,
-      }));
-
-      // Clean up suggested includes - remove empty ones
-      const cleanedSuggestedIncludes: { [key: string]: string[] } = {};
-      Object.entries(suggestedIncludes).forEach(([lang, includes]) => {
-        const filtered = includes.filter(inc => inc.trim() !== "");
-        if (filtered.length > 0) {
-          cleanedSuggestedIncludes[lang] = filtered;
-        }
-      });
-
-      const requestData = {
-        ...formData,
-        examples: cleanedExamples,
-        constraints: cleanedConstraints,
-        testCases: cleanedTestCases,
-        solutionCode: solutionCode,
-        suggestedIncludes: cleanedSuggestedIncludes,
-      };
-
-      const response = await problemRequestAPI.submitRequest(requestData);
-      setSuccess(
-        "Problem submitted successfully! Your submission will be reviewed by an admin."
-      );
-
-      if (onSuccess) {
-        onSuccess(response.data.requestId);
+    // Clean up suggested includes - remove empty ones
+    const cleanedSuggestedIncludes: { [key: string]: string[] } = {};
+    Object.entries(suggestedIncludes).forEach(([lang, includes]) => {
+      const filtered = includes.filter(inc => inc.trim() !== "");
+      if (filtered.length > 0) {
+        cleanedSuggestedIncludes[lang] = filtered;
       }
+    });
 
-      resetForm();
-    } catch (err: any) {
-      console.error("Error submitting problem:", err);
-      setError(
-        err.response?.data?.error ||
-          "Failed to submit problem. Please try again."
-      );
-    } finally {
-      setLoading(false);
+    // IMPORTANT: Add functionName and codeTemplates
+    const functionName = "solution"; // You may need to adjust this based on your requirements
+    
+    // Generate code templates for each language
+    const codeTemplates = {
+      cpp: `// Write your C++ solution here\nint solution() {\n    // Your code here\n    return 0;\n}`,
+      java: `// Write your Java solution here\npublic class Solution {\n    public int solution() {\n        // Your code here\n        return 0;\n    }\n}`,
+      python: `# Write your Python solution here\ndef solution():\n    # Your code here\n    return 0`,
+      javascript: `// Write your JavaScript solution here\nfunction solution() {\n    // Your code here\n    return 0;\n}`
+    };
+
+    const requestData = {
+      ...formData,
+      examples: cleanedExamples,
+      constraints: cleanedConstraints,
+      testCases: cleanedTestCases,
+      solutionCode: solutionCode,
+      suggestedIncludes: cleanedSuggestedIncludes,
+      functionName: functionName, // ADD THIS
+      codeTemplates: codeTemplates, // ADD THIS
+      inputFormat: formData.inputFormat || "Single line input", // Ensure this exists
+      outputFormat: formData.outputFormat || "Single line output", // Ensure this exists
+    };
+
+    // Debug logging
+    console.log("=== REQUEST DATA ===");
+    console.log("Title:", requestData.title);
+    console.log("Difficulty:", requestData.difficulty);
+    console.log("Description:", requestData.description);
+    console.log("Categories:", requestData.categories);
+    console.log("Examples count:", requestData.examples.length);
+    console.log("Constraints count:", requestData.constraints.length);
+    console.log("Test cases count:", requestData.testCases.length);
+    console.log("Solution language:", requestData.solutionCode.language);
+    console.log("Solution code length:", requestData.solutionCode.code.length);
+    console.log("Function name:", requestData.functionName);
+    console.log("Has code templates:", !!requestData.codeTemplates);
+    console.log("Full request data:", JSON.stringify(requestData, null, 2));
+
+    console.log("Sending request to API...");
+    const response = await problemRequestAPI.submitRequest(requestData);
+    
+    console.log("=== API RESPONSE ===");
+    console.log("Response status:", response.status);
+    console.log("Response data:", response.data);
+    
+    setSuccess(
+      "Problem submitted successfully! Your submission will be reviewed by an admin."
+    );
+    
+    if (onSuccess && response.data.requestId) {
+      onSuccess(response.data.requestId);
     }
-  };
+
+    // Reset form after successful submission
+    setTimeout(() => {
+      // Reset to initial state
+      setStep(1);
+      setFormData({
+        title: "",
+        difficulty: "Medium",
+        description: "",
+        inputFormat: "",
+        outputFormat: "",
+        categories: [],
+      });
+      setExamples([{ input: "", output: "", explanation: "" }]);
+      setConstraints([""]);
+      setTestCases([{ input: "", output: "", isHidden: false }]);
+      setSolutionCode({
+        language: "cpp",
+        code: `// Write your complete solution here\n\nint main() {\n    \n    return 0;\n}`,
+      });
+    }, 3000);
+    
+  } catch (err: any) {
+    console.error("=== SUBMISSION ERROR ===");
+    console.error("Error object:", err);
+    console.error("Error response:", err.response);
+    console.error("Error message:", err.message);
+    
+    if (err.response) {
+      console.error("Response status:", err.response.status);
+      console.error("Response data:", err.response.data);
+      setError(
+        err.response.data?.error || 
+        err.response.data?.message || 
+        `Server error: ${err.response.status}`
+      );
+    } else if (err.request) {
+      console.error("No response received:", err.request);
+      setError("No response from server. Please check your connection.");
+    } else {
+      console.error("Request setup error:", err.message);
+      setError(`Request failed: ${err.message}`);
+    }
+  } finally {
+    setLoading(false);
+  }
+};
 
   const resetForm = () => {
     setFormData({

@@ -651,7 +651,7 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
                                     title="View details"
                                     onClick={() => openTicketModal(ticket._id)}
                                   >
-                                    <i className="bi bi-eye"></i>
+                                    <i className="bi bi-eye">Details</i>
                                   </button>
                                   {ticket.status === "Pending" && (
                                     <>
@@ -660,7 +660,7 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
                                         title="Approve"
                                         onClick={() => handleReviewTicket(ticket._id, "Approved")}
                                       >
-                                        <i className="bi bi-check-lg"></i>
+                                        <i className="bi bi-check-lg">Approve</i>
                                       </button>
                                       <button 
                                         className="btn btn-danger btn-sm"
@@ -677,7 +677,7 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
                                       title="View feedback"
                                       onClick={() => alert(`Feedback: ${ticket.feedback}`)}
                                     >
-                                      <i className="bi bi-chat-square-text"></i>
+                                      <i className="bi bi-chat-square-text">Feedback</i>
                                     </button>
                                   )}
                                   {ticket.status === "Approved" && ticket.approvedProblem && (
@@ -1329,7 +1329,7 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
                 <div className="row">
                   <div className="col-md-8">
                     {/* Problem Details */}
-                    <div className="card bg-dark border-secondary mb-4">
+                    <div className="card bg-dark border-secondary text-muted mb-4">
                       <div className="card-header">
                         <h6 className="mb-0">Problem Information</h6>
                       </div>
@@ -1363,7 +1363,7 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
                     </div>
 
                     {/* Examples */}
-                    <div className="card bg-dark border-secondary mb-4">
+                    <div className="card bg-dark border-secondary text-muted mb-4">
                       <div className="card-header">
                         <h6 className="mb-0">Examples</h6>
                       </div>
@@ -1392,12 +1392,12 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
                     </div>
 
                     {/* Solution Code */}
-                    <div className="card bg-dark border-secondary">
+                    <div className="card bg-dark border-secondary text-muted">
                       <div className="card-header">
                         <h6 className="mb-0">Solution Code ({selectedTicket.solutionCode.language.toUpperCase()})</h6>
                       </div>
                       <div className="card-body">
-                        <pre className="bg-secondary p-3 rounded" style={{ maxHeight: '300px', overflow: 'auto' }}>
+                        <pre className="p-3 rounded" style={{ maxHeight: '300px', overflow: 'auto' }}>
                           <code>{selectedTicket.solutionCode.code}</code>
                         </pre>
                       </div>
@@ -1406,7 +1406,7 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
 
                   <div className="col-md-4">
                     {/* Submission Info */}
-                    <div className="card bg-dark border-secondary mb-4">
+                    <div className="card bg-dark border-secondary text-muted mb-4">
                       <div className="card-header">
                         <h6 className="mb-0">Submission Info</h6>
                       </div>
@@ -1443,7 +1443,7 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
                     </div>
 
                     {/* Constraints */}
-                    <div className="card bg-dark border-secondary mb-4">
+                    <div className="card bg-dark border-secondary text-muted mb-4">
                       <div className="card-header">
                         <h6 className="mb-0">Constraints</h6>
                       </div>
@@ -1459,7 +1459,7 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
                     </div>
 
                     {/* Test Cases Count */}
-                    <div className="card bg-dark border-secondary">
+                    <div className="card bg-dark border-secondary text-muted">
                       <div className="card-header">
                         <h6 className="mb-0">Test Cases</h6>
                       </div>

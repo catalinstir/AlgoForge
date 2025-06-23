@@ -14,8 +14,9 @@ import ProblemDetails from "./pages/problem/ProblemDetails";
 import Profile from "./pages/profile/Profile";
 import Settings from "./pages/settings/Settings";
 import Forums from "./pages/forums/Forums";
-import PublishProblem from "./pages/publish/PublishProblem";
-import MyProblems from "./pages/my-problems/MyProblems";
+import Browse from "./pages/browse/Browse"; // ADD THIS
+import PublishProblem from "./pages/publish/PublishProblem"; // ADD THIS
+import MyProblems from "./pages/my-problems/MyProblems"; // ADD THIS
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import apiClient, { userAPI, authAPI } from "./services/api";
 import { User, UserRole } from "./types";
@@ -27,9 +28,11 @@ const BackgroundManager = ({ children }: { children: React.ReactNode }) => {
     "/login",
     "/problems",
     "/browse",
+    "/publish", // ADD THIS
+    "/my-problems", // ADD THIS
     "/forums",
     "/profile",
-    "/settings", // ADDED
+    "/settings",
     "/admin",
     "/",
   ];
@@ -69,95 +72,67 @@ const AppContent = () => {
         "Error with user endpoint, trying auth endpoint:",
         userError
       );
-
-      // If user endpoint fails, try the auth endpoint
       try {
-        const authResponse = await authAPI.getMe();
-        console.log("Auth data fetched successfully:", authResponse.data);
+        const authResponse = await authAPI.getCurrentUser();
+        console.log("User data fetched from auth endpoint:", authResponse.data);
         setCurrentUser(authResponse.data);
         setIsLoggedIn(true);
         return authResponse.data;
       } catch (authError) {
-        console.error(
-          "Failed to fetch user data from both endpoints:",
-          authError
-        );
-
-        // Show more detailed error information for debugging
-        if (axios.isAxiosError(authError)) {
-          console.error(
-            "Auth error details:",
-            authError.response?.data || authError.message
-          );
-        }
-
-        localStorage.removeItem("authToken");
-        setIsLoggedIn(false);
-        setCurrentUser(null);
-        return null;
+        console.error("Both endpoints failed:", authError);
+        throw authError;
       }
     }
   }, []);
 
-  const handleUserStatsUpdate = useCallback((newStats: { problemsSolvedCount: number; problemsAttemptedCount: number }) => {
+  const handleUserStatsUpdate = useCallback((updatedStats: Partial<User>) => {
     if (currentUser) {
-      setCurrentUser(prev => prev ? {
-        ...prev,
-        problemsSolvedCount: newStats.problemsSolvedCount,
-        problemsAttemptedCount: newStats.problemsAttemptedCount
-      } : null);
+      setCurrentUser(prev => ({
+        ...prev!,
+        ...updatedStats
+      }));
     }
   }, [currentUser]);
 
   useEffect(() => {
-    const checkAuth = async () => {
+    const initializeApp = async () => {
       const token = localStorage.getItem("authToken");
       if (token) {
-        console.log("Token found in localStorage, verifying...");
-        await fetchUserData();
-      } else {
-        console.log("No token found in localStorage.");
-        setIsLoggedIn(false);
-        setCurrentUser(null);
+        try {
+          await fetchUserData();
+        } catch (error) {
+          console.error("Failed to fetch user data:", error);
+          localStorage.removeItem("authToken");
+          setIsLoggedIn(false);
+          setCurrentUser(null);
+        }
       }
       setIsLoading(false);
     };
-    checkAuth();
+
+    initializeApp();
   }, [fetchUserData]);
-
-  // Listen for problem solved events to refresh user data
-  useEffect(() => {
-    const handleProblemSolved = () => {
-      if (isLoggedIn) {
-        fetchUserData();
-      }
-    };
-
-    window.addEventListener('problemSolved', handleProblemSolved);
-    return () => {
-      window.removeEventListener('problemSolved', handleProblemSolved);
-    };
-  }, [isLoggedIn, fetchUserData]);
 
   const handleLoginClick = () => {
     navigate("/login");
   };
 
-  const handleLoginSuccess = async (token: string) => {
-    console.log("Login successful, storing token...");
-    localStorage.setItem("authToken", token);
-    setIsLoading(true);
-    const userData = await fetchUserData();
-    setIsLoading(false);
-    if (userData) {
-      if (userData.role === "admin") {
-        navigate("/admin");
-      } else {
+  const handleLoginSuccess = async (userData: User) => {
+    console.log("Login successful, user data:", userData);
+    try {
+      // The token is already stored by Login component
+      // Just fetch fresh user data
+      const freshUserData = await fetchUserData();
+      
+      if (freshUserData) {
         const from = location.state?.from?.pathname || "/problems";
         navigate(from, { replace: true });
+      } else {
+        throw new Error("Failed to fetch user data after login");
       }
-    } else {
-      setError("Login succeeded but failed to load user details.");
+    } catch (error) {
+      console.error("Error fetching user data after login:", error);
+      setError("Failed to load user data. Please try logging in again.");
       handleLogout();
     }
   };
@@ -286,7 +261,6 @@ const AppContent = () => {
                 </ProtectedRoute>
               }
             />
-            {/* NEW: Settings Route */}
             <Route
               path="/settings"
               element={
@@ -297,6 +271,29 @@ const AppContent = () => {
                 </ProtectedRoute>
               }
             />
+            
+            {/* ADD THESE ROUTES */}
+            <Route
+              path="/publish"
+              element={
+                <ProtectedRoute>
+                  <div className="container main-content p-4">
+                    <PublishProblem currentUser={currentUser} />
+                  </div>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/my-problems"
+              element={
+                <ProtectedRoute>
+                  <div className="container main-content p-4">
+                    <MyProblems currentUser={currentUser} />
+                  </div>
+                </ProtectedRoute>
+              }
+            />
+            
             <Route
               path="/admin"
               element={
