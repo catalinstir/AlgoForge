@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { User } from "../../types";
-import { problemAPI, submissionAPI } from "../../services/api";
+import { problemAPI, submissionAPI, userAPI, problemRequestAPI } from "../../services/api";
 
 interface AdminDashboardProps {
   currentUser: User | null;
@@ -27,14 +27,56 @@ interface AdminSubmission {
   passRate?: number;
 }
 
+interface ProblemTicket {
+  _id: string;
+  title: string;
+  difficulty: string;
+  description: string;
+  status: "Pending" | "Approved" | "Rejected";
+  submitter: {
+    _id: string;
+    username: string;
+    email: string;
+  };
+  categories: string[];
+  examples: Array<{
+    input: string;
+    output: string;
+    explanation?: string;
+  }>;
+  constraints: string[];
+  testCases: Array<{
+    input: string;
+    output: string;
+    isHidden: boolean;
+  }>;
+  solutionCode: {
+    language: string;
+    code: string;
+  };
+  createdAt: string;
+  reviewedAt?: string;
+  reviewedBy?: string;
+  feedback?: string;
+  approvedProblem?: {
+    _id: string;
+    title: string;
+  };
+}
+
 const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
-  const [selectedTab, setSelectedTab] = useState("problems");
+  const [selectedTab, setSelectedTab] = useState("tickets");
   const [problems, setProblems] = useState<any[]>([]);
   const [submissions, setSubmissions] = useState<AdminSubmission[]>([]);
   const [users, setUsers] = useState<any[]>([]);
+  const [tickets, setTickets] = useState<ProblemTicket[]>([]);
+  const [selectedTicket, setSelectedTicket] = useState<ProblemTicket | null>(null);
+  
   const [loading, setLoading] = useState(false);
   const [submissionsLoading, setSubmissionsLoading] = useState(false);
   const [usersLoading, setUsersLoading] = useState(false);
+  const [ticketsLoading, setTicketsLoading] = useState(false);
+  
   const [submissionFilters, setSubmissionFilters] = useState({
     status: "",
     language: "",
@@ -45,6 +87,10 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
     search: "",
     role: "",
   });
+  const [ticketFilters, setTicketFilters] = useState({
+    status: "",
+  });
+  
   const [submissionPagination, setSubmissionPagination] = useState({
     page: 1,
     limit: 20,
@@ -52,6 +98,12 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
     pages: 0,
   });
   const [userPagination, setUserPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    pages: 0,
+  });
+  const [ticketPagination, setTicketPagination] = useState({
     page: 1,
     limit: 20,
     total: 0,
@@ -65,8 +117,10 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
       fetchSubmissions();
     } else if (selectedTab === "users") {
       fetchUsers();
+    } else if (selectedTab === "tickets") {
+      fetchTickets();
     }
-  }, [selectedTab, submissionFilters, submissionPagination.page, userFilters, userPagination.page]);
+  }, [selectedTab, submissionFilters, submissionPagination.page, userFilters, userPagination.page, ticketFilters, ticketPagination.page]);
 
   const fetchProblems = async () => {
     setLoading(true);
@@ -102,6 +156,30 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
       console.error("Error fetching users:", error);
     } finally {
       setUsersLoading(false);
+    }
+  };
+
+  const fetchTickets = async () => {
+    setTicketsLoading(true);
+    try {
+      const params: any = {
+        page: ticketPagination.page,
+        limit: ticketPagination.limit,
+      };
+      
+      if (ticketFilters.status) params.status = ticketFilters.status;
+
+      const response = await problemRequestAPI.getAllRequests(params);
+      setTickets(response.data.requests);
+      setTicketPagination(prev => ({
+        ...prev,
+        total: response.data.pagination.total,
+        pages: response.data.pagination.pages,
+      }));
+    } catch (error) {
+      console.error("Error fetching tickets:", error);
+    } finally {
+      setTicketsLoading(false);
     }
   };
 
@@ -174,6 +252,25 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
     setUserPagination(prev => ({ ...prev, page: 1 }));
   };
 
+  const handleTicketFilterChange = (
+    e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>
+  ) => {
+    const { name, value } = e.target;
+    setTicketFilters(prev => ({ ...prev, [name]: value }));
+    setTicketPagination(prev => ({ ...prev, page: 1 }));
+  };
+
+  const handleTicketPageChange = (newPage: number) => {
+    setTicketPagination(prev => ({ ...prev, page: newPage }));
+  };
+
+  const clearTicketFilters = () => {
+    setTicketFilters({
+      status: "",
+    });
+    setTicketPagination(prev => ({ ...prev, page: 1 }));
+  };
+
   const handleBanUser = async (userId: string, currentStatus: string) => {
     const action = currentStatus === "Banned" ? "unban" : "ban";
     if (!window.confirm(`Are you sure you want to ${action} this user?`)) {
@@ -214,13 +311,60 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
 
     try {
       await submissionAPI.deleteSubmission(submissionId);
-      // Refresh the submissions list
       fetchSubmissions();
       alert("Submission deleted successfully.");
     } catch (error) {
       console.error("Error deleting submission:", error);
       alert("Failed to delete submission. Please try again.");
     }
+  };
+
+  const handleReviewTicket = async (ticketId: string, action: "Approved" | "Rejected", feedback?: string) => {
+    const actionText = action.toLowerCase();
+    
+    if (action === "Rejected" && !feedback) {
+      feedback = prompt("Please provide feedback for rejection:");
+      if (!feedback || feedback.trim() === "") {
+        alert("Feedback is required for rejection.");
+        return;
+      }
+    }
+
+    if (!window.confirm(`Are you sure you want to ${actionText} this problem submission?`)) {
+      return;
+    }
+
+    try {
+      await problemRequestAPI.reviewRequest(ticketId, { 
+        status: action, 
+        feedback: feedback || `Problem ${actionText} by admin.`
+      });
+      
+      // Refresh the tickets list
+      fetchTickets();
+      
+      // Close the modal if it was open
+      setSelectedTicket(null);
+      
+      alert(`Problem ${actionText} successfully.`);
+    } catch (error) {
+      console.error(`Error ${actionText} ticket:`, error);
+      alert(`Failed to ${actionText} problem. Please try again.`);
+    }
+  };
+
+  const openTicketModal = async (ticketId: string) => {
+    try {
+      const response = await problemRequestAPI.getRequest(ticketId);
+      setSelectedTicket(response.data);
+    } catch (error) {
+      console.error("Error fetching ticket details:", error);
+      alert("Failed to load ticket details.");
+    }
+  };
+
+  const closeTicketModal = () => {
+    setSelectedTicket(null);
   };
 
   // Permission Check: Ensure user is logged in and is an admin
@@ -240,6 +384,7 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
       case "published":
       case "active":
       case "accepted":
+      case "approved":
         return "bg-success";
       case "draft":
       case "pending":
@@ -275,6 +420,8 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
     return `${(totalSubmissions / 1000000).toFixed(1)}M`;
   };
 
+  const pendingTicketsCount = tickets.filter(t => t.status === "Pending").length;
+
   return (
     <div className="admin-dashboard">
       <div className="problems-container">
@@ -293,6 +440,22 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
 
         {/* Tab Navigation */}
         <ul className="nav nav-tabs nav-fill mb-4">
+          <li className="nav-item">
+            <button
+              className={`nav-link ${
+                selectedTab === "tickets" ? "active" : "text-muted"
+              }`}
+              onClick={() => setSelectedTab("tickets")}
+              type="button"
+            >
+              Review Tickets
+              {pendingTicketsCount > 0 && (
+                <span className="badge bg-warning text-dark ms-1">
+                  {pendingTicketsCount}
+                </span>
+              )}
+            </button>
+          </li>
           <li className="nav-item">
             <button
               className={`nav-link ${
@@ -330,6 +493,268 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
 
         {/* Tab Content */}
         <div className="tab-content">
+          {/* Tickets Tab */}
+          {selectedTab === "tickets" && (
+            <div className="tab-pane fade show active">
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <h4 className="text-light mb-0">
+                  Problem Submission Tickets 
+                  <span className="badge bg-info ms-2">{ticketPagination.total}</span>
+                </h4>
+                <div className="d-flex gap-2">
+                  <button 
+                    className="btn btn-outline-secondary btn-sm"
+                    onClick={clearTicketFilters}
+                  >
+                    Clear Filters
+                  </button>
+                  <button 
+                    className="btn btn-outline-info btn-sm"
+                    onClick={fetchTickets}
+                  >
+                    <i className="bi bi-arrow-clockwise me-1"></i>
+                    Refresh
+                  </button>
+                </div>
+              </div>
+
+              {/* Ticket Summary Stats */}
+              <div className="row mb-4">
+                <div className="col-md-3">
+                  <div className="card bg-dark text-light border-warning">
+                    <div className="card-body text-center">
+                      <div className="fs-3 text-warning">{pendingTicketsCount}</div>
+                      <div className="text-muted">Pending Review</div>
+                    </div>
+                  </div>
+                </div>
+                <div className="col-md-3">
+                  <div className="card bg-dark text-light border-success">
+                    <div className="card-body text-center">
+                      <div className="fs-3 text-success">
+                        {tickets.filter(t => t.status === "Approved").length}
+                      </div>
+                      <div className="text-muted">Approved</div>
+                    </div>
+                  </div>
+                </div>
+                <div className="col-md-3">
+                  <div className="card bg-dark text-light border-danger">
+                    <div className="card-body text-center">
+                      <div className="fs-3 text-danger">
+                        {tickets.filter(t => t.status === "Rejected").length}
+                      </div>
+                      <div className="text-muted">Rejected</div>
+                    </div>
+                  </div>
+                </div>
+                <div className="col-md-3">
+                  <div className="card bg-dark text-light border-info">
+                    <div className="card-body text-center">
+                      <div className="fs-3 text-info">{ticketPagination.total}</div>
+                      <div className="text-muted">Total Tickets</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Ticket Filters */}
+              <div className="row mb-4">
+                <div className="col-md-4">
+                  <select
+                    className="form-select form-select-sm bg-dark text-light border-secondary"
+                    name="status"
+                    value={ticketFilters.status}
+                    onChange={handleTicketFilterChange}
+                  >
+                    <option value="">All Status</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Approved">Approved</option>
+                    <option value="Rejected">Rejected</option>
+                  </select>
+                </div>
+              </div>
+
+              {ticketsLoading ? (
+                <div className="text-center p-4">
+                  <div className="spinner-border text-primary" role="status">
+                    <span className="visually-hidden">Loading tickets...</span>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="table-responsive">
+                    <table className="table table-dark table-hover table-sm align-middle">
+                      <thead>
+                        <tr>
+                          <th>Problem</th>
+                          <th>Submitter</th>
+                          <th>Difficulty</th>
+                          <th>Status</th>
+                          <th>Submitted</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {tickets.length > 0 ? (
+                          tickets.map((ticket) => (
+                            <tr key={ticket._id}>
+                              <td>
+                                <div className="d-flex flex-column">
+                                  <span className="fw-bold">{ticket.title}</span>
+                                  <small className="text-muted">
+                                    {ticket.description.length > 80
+                                      ? `${ticket.description.substring(0, 80)}...`
+                                      : ticket.description}
+                                  </small>
+                                  {ticket.categories && ticket.categories.length > 0 && (
+                                    <div className="mt-1">
+                                      {ticket.categories.slice(0, 2).map((cat: string, idx: number) => (
+                                        <span key={idx} className="badge bg-info me-1" style={{ fontSize: "0.6rem" }}>
+                                          {cat}
+                                        </span>
+                                      ))}
+                                      {ticket.categories.length > 2 && (
+                                        <span className="text-muted" style={{ fontSize: "0.7rem" }}>
+                                          +{ticket.categories.length - 2} more
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+                              <td>
+                                <div className="d-flex flex-column">
+                                  <span className="fw-bold">{ticket.submitter?.username || "Unknown"}</span>
+                                  <small className="text-muted">{ticket.submitter?.email || ""}</small>
+                                </div>
+                              </td>
+                              <td>
+                                <span className={getDifficultyColorClass(ticket.difficulty)}>
+                                  {ticket.difficulty}
+                                </span>
+                              </td>
+                              <td>
+                                <span className={`badge ${getStatusBadge(ticket.status)}`}>
+                                  {ticket.status}
+                                </span>
+                              </td>
+                              <td>
+                                <small className="text-muted">
+                                  {new Date(ticket.createdAt).toLocaleDateString()}
+                                </small>
+                              </td>
+                              <td>
+                                <div className="btn-group" role="group">
+                                  <button 
+                                    className="btn btn-info btn-sm"
+                                    title="View details"
+                                    onClick={() => openTicketModal(ticket._id)}
+                                  >
+                                    <i className="bi bi-eye"></i>
+                                  </button>
+                                  {ticket.status === "Pending" && (
+                                    <>
+                                      <button 
+                                        className="btn btn-success btn-sm"
+                                        title="Approve"
+                                        onClick={() => handleReviewTicket(ticket._id, "Approved")}
+                                      >
+                                        <i className="bi bi-check-lg"></i>
+                                      </button>
+                                      <button 
+                                        className="btn btn-danger btn-sm"
+                                        title="Reject"
+                                        onClick={() => handleReviewTicket(ticket._id, "Rejected")}
+                                      >
+                                        <i className="bi bi-x-lg"></i>
+                                      </button>
+                                    </>
+                                  )}
+                                  {ticket.feedback && (
+                                    <button 
+                                      className="btn btn-outline-secondary btn-sm"
+                                      title="View feedback"
+                                      onClick={() => alert(`Feedback: ${ticket.feedback}`)}
+                                    >
+                                      <i className="bi bi-chat-square-text"></i>
+                                    </button>
+                                  )}
+                                  {ticket.status === "Approved" && ticket.approvedProblem && (
+                                    <button 
+                                      className="btn btn-outline-primary btn-sm"
+                                      title="View published problem"
+                                      onClick={() => window.open(`/problem/${ticket.approvedProblem._id}`, '_blank')}
+                                    >
+                                      <i className="bi bi-arrow-right"></i>
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={6} className="text-center py-3">
+                              No tickets found
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Ticket Pagination */}
+                  {ticketPagination.pages > 1 && (
+                    <nav aria-label="Tickets pagination" className="mt-4">
+                      <ul className="pagination justify-content-center">
+                        <li className={`page-item ${ticketPagination.page === 1 ? "disabled" : ""}`}>
+                          <button
+                            className="page-link bg-dark text-light border-secondary"
+                            onClick={() => handleTicketPageChange(ticketPagination.page - 1)}
+                            disabled={ticketPagination.page === 1}
+                          >
+                            Previous
+                          </button>
+                        </li>
+                        
+                        {Array.from({ length: Math.min(5, ticketPagination.pages) }, (_, i) => {
+                          const startPage = Math.max(1, ticketPagination.page - 2);
+                          const pageNum = startPage + i;
+                          if (pageNum > ticketPagination.pages) return null;
+                          
+                          return (
+                            <li
+                              key={pageNum}
+                              className={`page-item ${ticketPagination.page === pageNum ? "active" : ""}`}
+                            >
+                              <button
+                                className="page-link bg-dark text-light border-secondary"
+                                onClick={() => handleTicketPageChange(pageNum)}
+                              >
+                                {pageNum}
+                              </button>
+                            </li>
+                          );
+                        })}
+                        
+                        <li className={`page-item ${ticketPagination.page === ticketPagination.pages ? "disabled" : ""}`}>
+                          <button
+                            className="page-link bg-dark text-light border-secondary"
+                            onClick={() => handleTicketPageChange(ticketPagination.page + 1)}
+                            disabled={ticketPagination.page === ticketPagination.pages}
+                          >
+                            Next
+                          </button>
+                        </li>
+                      </ul>
+                    </nav>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
           {/* Problems Tab */}
           {selectedTab === "problems" && (
             <div className="tab-pane fade show active">
@@ -822,7 +1247,7 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
                           ))
                         ) : (
                           <tr>
-                            <td colSpan={7} className="text-center py-3">
+                            <td colSpan={8} className="text-center py-3">
                               No submissions found
                             </td>
                           </tr>
@@ -883,6 +1308,219 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
           )}
         </div>
       </div>
+
+      {/* Ticket Detail Modal */}
+      {selectedTicket && (
+        <div className="modal show d-block" tabIndex={-1} style={{ backgroundColor: 'rgba(0,0,0,0.8)' }}>
+          <div className="modal-dialog modal-xl modal-dialog-scrollable">
+            <div className="modal-content bg-dark text-light border-secondary">
+              <div className="modal-header border-secondary">
+                <h5 className="modal-title">
+                  <i className="bi bi-ticket-detailed me-2"></i>
+                  Problem Submission Details
+                </h5>
+                <button
+                  type="button"
+                  className="btn-close btn-close-white"
+                  onClick={closeTicketModal}
+                ></button>
+              </div>
+              <div className="modal-body">
+                <div className="row">
+                  <div className="col-md-8">
+                    {/* Problem Details */}
+                    <div className="card bg-dark border-secondary mb-4">
+                      <div className="card-header">
+                        <h6 className="mb-0">Problem Information</h6>
+                      </div>
+                      <div className="card-body">
+                        <div className="mb-3">
+                          <strong>Title:</strong> {selectedTicket.title}
+                        </div>
+                        <div className="mb-3">
+                          <strong>Difficulty:</strong> 
+                          <span className={`ms-2 ${getDifficultyColorClass(selectedTicket.difficulty)}`}>
+                            {selectedTicket.difficulty}
+                          </span>
+                        </div>
+                        <div className="mb-3">
+                          <strong>Categories:</strong>
+                          <div className="mt-1">
+                            {selectedTicket.categories.map((cat, idx) => (
+                              <span key={idx} className="badge bg-info me-1">
+                                {cat}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="mb-3">
+                          <strong>Description:</strong>
+                          <div className="mt-2 p-3 bg-darker rounded">
+                            {selectedTicket.description}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Examples */}
+                    <div className="card bg-dark border-secondary mb-4">
+                      <div className="card-header">
+                        <h6 className="mb-0">Examples</h6>
+                      </div>
+                      <div className="card-body">
+                        {selectedTicket.examples.map((example, idx) => (
+                          <div key={idx} className="mb-3">
+                            <strong>Example {idx + 1}:</strong>
+                            <div className="mt-2">
+                              <div className="mb-2">
+                                <strong>Input:</strong>
+                                <pre className="bg-secondary p-2 rounded mt-1">{example.input}</pre>
+                              </div>
+                              <div className="mb-2">
+                                <strong>Output:</strong>
+                                <pre className="bg-secondary p-2 rounded mt-1">{example.output}</pre>
+                              </div>
+                              {example.explanation && (
+                                <div>
+                                  <strong>Explanation:</strong> {example.explanation}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Solution Code */}
+                    <div className="card bg-dark border-secondary">
+                      <div className="card-header">
+                        <h6 className="mb-0">Solution Code ({selectedTicket.solutionCode.language.toUpperCase()})</h6>
+                      </div>
+                      <div className="card-body">
+                        <pre className="bg-secondary p-3 rounded" style={{ maxHeight: '300px', overflow: 'auto' }}>
+                          <code>{selectedTicket.solutionCode.code}</code>
+                        </pre>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="col-md-4">
+                    {/* Submission Info */}
+                    <div className="card bg-dark border-secondary mb-4">
+                      <div className="card-header">
+                        <h6 className="mb-0">Submission Info</h6>
+                      </div>
+                      <div className="card-body">
+                        <div className="mb-3">
+                          <strong>Status:</strong>
+                          <span className={`badge ms-2 ${getStatusBadge(selectedTicket.status)}`}>
+                            {selectedTicket.status}
+                          </span>
+                        </div>
+                        <div className="mb-3">
+                          <strong>Submitter:</strong> {selectedTicket.submitter.username}
+                        </div>
+                        <div className="mb-3">
+                          <strong>Email:</strong> {selectedTicket.submitter.email}
+                        </div>
+                        <div className="mb-3">
+                          <strong>Submitted:</strong> {new Date(selectedTicket.createdAt).toLocaleString()}
+                        </div>
+                        {selectedTicket.reviewedAt && (
+                          <div className="mb-3">
+                            <strong>Reviewed:</strong> {new Date(selectedTicket.reviewedAt).toLocaleString()}
+                          </div>
+                        )}
+                        {selectedTicket.feedback && (
+                          <div className="mb-3">
+                            <strong>Feedback:</strong>
+                            <div className="mt-2 p-2 bg-secondary rounded">
+                              {selectedTicket.feedback}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Constraints */}
+                    <div className="card bg-dark border-secondary mb-4">
+                      <div className="card-header">
+                        <h6 className="mb-0">Constraints</h6>
+                      </div>
+                      <div className="card-body">
+                        <ul className="list-unstyled">
+                          {selectedTicket.constraints.map((constraint, idx) => (
+                            <li key={idx} className="mb-1">
+                              <code>{constraint}</code>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+
+                    {/* Test Cases Count */}
+                    <div className="card bg-dark border-secondary">
+                      <div className="card-header">
+                        <h6 className="mb-0">Test Cases</h6>
+                      </div>
+                      <div className="card-body">
+                        <div className="mb-2">
+                          <strong>Total:</strong> {selectedTicket.testCases.length}
+                        </div>
+                        <div className="mb-2">
+                          <strong>Hidden:</strong> {selectedTicket.testCases.filter(tc => tc.isHidden).length}
+                        </div>
+                        <div>
+                          <strong>Visible:</strong> {selectedTicket.testCases.filter(tc => !tc.isHidden).length}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="modal-footer border-secondary">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={closeTicketModal}
+                >
+                  Close
+                </button>
+                {selectedTicket.status === "Pending" && (
+                  <>
+                    <button
+                      type="button"
+                      className="btn btn-danger"
+                      onClick={() => handleReviewTicket(selectedTicket._id, "Rejected")}
+                    >
+                      <i className="bi bi-x-lg me-1"></i>
+                      Reject
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-success"
+                      onClick={() => handleReviewTicket(selectedTicket._id, "Approved")}
+                    >
+                      <i className="bi bi-check-lg me-1"></i>
+                      Approve
+                    </button>
+                  </>
+                )}
+                {selectedTicket.status === "Approved" && selectedTicket.approvedProblem && (
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => window.open(`/problem/${selectedTicket.approvedProblem._id}`, '_blank')}
+                  >
+                    <i className="bi bi-arrow-right me-1"></i>
+                    View Published Problem
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

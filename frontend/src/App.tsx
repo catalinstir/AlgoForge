@@ -12,9 +12,10 @@ import Navbar from "./components/Navbar";
 import ProblemList from "./components/ProblemList";
 import ProblemDetails from "./pages/problem/ProblemDetails";
 import Profile from "./pages/profile/Profile";
-import Settings from "./pages/settings/Settings"; // NEW IMPORT
+import Settings from "./pages/settings/Settings";
 import Forums from "./pages/forums/Forums";
-import Browse from "./pages/browse/Browse";
+import PublishProblem from "./pages/publish/PublishProblem";
+import MyProblems from "./pages/my-problems/MyProblems";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import apiClient, { userAPI, authAPI } from "./services/api";
 import { User, UserRole } from "./types";

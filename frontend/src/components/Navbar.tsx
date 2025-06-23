@@ -47,11 +47,15 @@ const Navbar = ({
                 Problems
               </NavLink>
             </li>
-            <li className="nav-item">
-              <NavLink className="nav-link" to="/browse">
-                Browse
-              </NavLink>
-            </li>
+            {/* Updated: Replace Browse with Publish (only for logged in users) */}
+            {isLoggedIn && (
+              <li className="nav-item">
+                <NavLink className="nav-link" to="/publish">
+                  <i className="bi bi-upload me-1"></i>
+                  Publish
+                </NavLink>
+              </li>
+            )}
             <li className="nav-item">
               <NavLink className="nav-link" to="/forums">
                 Forums
@@ -104,6 +108,12 @@ const Navbar = ({
                   <li>
                     <Link className="dropdown-item" to="/settings">
                       Settings
+                    </Link>
+                  </li>
+                  {/* Add link to user's published problems */}
+                  <li>
+                    <Link className="dropdown-item" to="/my-problems">
+                      My Problems
                     </Link>
                   </li>
                   <li>
