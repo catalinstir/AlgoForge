@@ -12,6 +12,7 @@ import Navbar from "./components/Navbar";
 import ProblemList from "./components/ProblemList";
 import ProblemDetails from "./pages/problem/ProblemDetails";
 import Profile from "./pages/profile/Profile";
+import Settings from "./pages/settings/Settings"; // NEW IMPORT
 import Forums from "./pages/forums/Forums";
 import Browse from "./pages/browse/Browse";
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -27,7 +28,7 @@ const BackgroundManager = ({ children }: { children: React.ReactNode }) => {
     "/browse",
     "/forums",
     "/profile",
-    "/settings",
+    "/settings", // ADDED
     "/admin",
     "/",
   ];
@@ -284,13 +285,13 @@ const AppContent = () => {
                 </ProtectedRoute>
               }
             />
+            {/* NEW: Settings Route */}
             <Route
               path="/settings"
               element={
                 <ProtectedRoute>
-                  <div className="container main-content p-4 text-light">
-                    <h2>Settings</h2>
-                    <p>Settings page content goes here.</p>
+                  <div className="container main-content p-4">
+                    <Settings user={currentUser} onLogout={handleLogout} />
                   </div>
                 </ProtectedRoute>
               }

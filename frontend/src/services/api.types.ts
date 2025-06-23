@@ -1,4 +1,3 @@
-// api.types.ts
 export interface LoginCredentials {
   email: string;
   password: string;
@@ -18,6 +17,11 @@ export interface UpdateProfileData {
 export interface ChangePasswordData {
   currentPassword: string;
   newPassword: string;
+}
+
+// NEW: Interface for account deletion
+export interface DeleteAccountData {
+  password: string;
 }
 
 export interface PaginationParams {

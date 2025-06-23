@@ -413,11 +413,6 @@ const Profile = ({ user }: ProfileProps) => {
                     </div>
                   </div>
                 </div>
-
-                <div className="alert alert-info">
-                  The detailed solved problems list will be implemented in a future
-                  update.
-                </div>
               </div>
             )}
 
@@ -454,11 +449,6 @@ const Profile = ({ user }: ProfileProps) => {
                       </div>
                     </div>
                   </div>
-                </div>
-
-                <div className="alert alert-info">
-                  The detailed submissions history will be implemented in a future
-                  update.
                 </div>
               </div>
             )}

@@ -16,6 +16,7 @@ import "./styles/ProblemDetail.css";
 import "./styles/CodeEditor.css";
 import "./styles/ProblemPreview.css";
 import "./styles/AdminDashboard.css";
+import "./styles/Settings.css"; // NEW
 
 import AppContent from "./App.tsx";
 

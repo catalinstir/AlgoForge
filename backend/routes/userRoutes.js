@@ -24,6 +24,9 @@ router.get(
 router.put("/update-profile", authMiddleware, userController.updateProfile);
 router.put("/change-password", authMiddleware, userController.changePassword);
 
+// NEW: Delete account route
+router.delete("/delete-account", authMiddleware, userController.deleteAccount);
+
 // Admin routes
 router.get("/all", authMiddleware, userController.getAllUsers);
 router.put("/:id/role", authMiddleware, userController.updateUserRole);

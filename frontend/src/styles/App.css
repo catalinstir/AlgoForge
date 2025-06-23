@@ -166,3 +166,7 @@ body {
 .border-secondary {
   border-color: #444 !important;
 }
+.text-muted {
+  color: #adb5bd !important; /* Lighter gray instead of Bootstrap's default #6c757d */
+}
+

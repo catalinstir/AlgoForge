@@ -4,6 +4,7 @@ import {
   RegisterData,
   UpdateProfileData,
   ChangePasswordData,
+  DeleteAccountData, // NEW
   PaginationParams,
   ProblemFilterParams,
   UserFilterParams,
@@ -125,6 +126,10 @@ export const userAPI = {
   
   getPublicUploadedProblems: (userId: string): Promise<AxiosResponse<any>> => 
     apiClient.get(`/api/users/uploaded/${userId}`),
+  
+  // NEW: Delete account
+  deleteAccount: (data: DeleteAccountData): Promise<AxiosResponse<any>> => 
+    apiClient.delete('/api/users/delete-account', { data }),
   
   // Admin functions
   getAllUsers: (params?: UserFilterParams): Promise<AxiosResponse<any>> => 

@@ -1,4 +1,7 @@
 const User = require("../models/User");
+const Submission = require("../models/Submission");
+const Problem = require("../models/Problem");
+const ProblemRequest = require("../models/ProblemRequest");
 const mongoose = require("mongoose");
 
 exports.getMe = async (req, res) => {
@@ -252,6 +255,171 @@ exports.changePassword = async (req, res) => {
     res.status(500).json({ error: "Failed to change password." });
   }
 };
+
+// Delete account
+exports.deleteAccount = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { password } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({ error: "Not authorized." });
+    }
+
+    if (!password) {
+      return res.status(400).json({ error: "Password is required to delete account." });
+    }
+
+    // Find the user
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    // Verify password
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+      return res.status(400).json({ error: "Incorrect password." });
+    }
+
+    // Prevent admin from deleting their own account if they're the only admin
+    if (user.role === "admin") {
+      const adminCount = await User.countDocuments({ role: "admin" });
+      if (adminCount === 1) {
+        return res.status(400).json({ 
+          error: "Cannot delete account. You are the only admin. Please assign another admin first." 
+        });
+      }
+    }
+
+    console.log(`Starting account deletion for user: ${user.username} (${userId})`);
+
+    try {
+      // Check if we're in a replica set environment (production)
+      const isReplicaSet = process.env.MONGODB_REPLICA_SET === 'true' || 
+                          process.env.NODE_ENV === 'production';
+
+      if (isReplicaSet) {
+        // Use transactions in production/replica set environment
+        const session = await mongoose.startSession();
+        await session.withTransaction(async () => {
+          await performAccountDeletion(user, userId, session);
+        });
+        await session.endSession();
+      } else {
+        // Use sequential operations for local development (no transactions)
+        await performAccountDeletion(user, userId, null);
+      }
+
+      console.log(`Account deletion completed successfully for user: ${user.username}`);
+      
+      res.json({ 
+        message: "Account deleted successfully. You will be logged out." 
+      });
+
+    } catch (deletionError) {
+      console.error("Error during account deletion:", deletionError);
+      res.status(500).json({ 
+        error: "Failed to delete account due to a database error. Please try again." 
+      });
+    }
+
+  } catch (err) {
+    console.error("Error deleting account:", err);
+    res.status(500).json({ error: "Failed to delete account." });
+  }
+};
+
+// Helper function to perform account deletion operations
+async function performAccountDeletion(user, userId, session = null) {
+  const sessionOptions = session ? { session } : {};
+
+  // 1. Delete all user's submissions
+  const deletedSubmissions = await Submission.deleteMany({ user: userId }, sessionOptions);
+  console.log(`Deleted ${deletedSubmissions.deletedCount} submissions`);
+
+  // 2. Delete all user's problem requests
+  const deletedRequests = await ProblemRequest.deleteMany({ submitter: userId }, sessionOptions);
+  console.log(`Deleted ${deletedRequests.deletedCount} problem requests`);
+
+  // 3. Handle problems uploaded by the user
+  const userProblems = await Problem.find({ author: userId }, null, sessionOptions);
+  if (userProblems.length > 0) {
+    console.log(`Found ${userProblems.length} problems uploaded by user`);
+    
+    // Find another admin to transfer problems to
+    const firstAdmin = await User.findOne({ 
+      role: "admin", 
+      _id: { $ne: userId } 
+    }, null, sessionOptions);
+    
+    if (firstAdmin) {
+      // Transfer ownership to admin
+      await Problem.updateMany(
+        { author: userId },
+        { $set: { author: firstAdmin._id } },
+        sessionOptions
+      );
+      
+      // Update admin's problemsUploaded array
+      await User.findByIdAndUpdate(
+        firstAdmin._id,
+        { $addToSet: { problemsUploaded: { $each: userProblems.map(p => p._id) } } },
+        sessionOptions
+      );
+      
+      console.log(`Transferred ${userProblems.length} problems to admin: ${firstAdmin.username}`);
+    } else {
+      // No admin available, delete the problems
+      await Problem.deleteMany({ author: userId }, sessionOptions);
+      console.log(`Deleted ${userProblems.length} problems (no admin to transfer to)`);
+    }
+  }
+
+  // 4. Remove user references from other users' arrays (if any)
+  const userUpdateResult = await User.updateMany(
+    {},
+    { 
+      $pull: { 
+        problemsAttempted: { $in: user.problemsAttempted },
+        problemsSolved: { $in: user.problemsSolved }
+      }
+    },
+    sessionOptions
+  );
+  console.log(`Updated ${userUpdateResult.modifiedCount} other users to remove references`);
+
+  // 5. Update problem statistics
+  for (const problemId of user.problemsSolved) {
+    try {
+      const problem = await Problem.findById(problemId, null, sessionOptions);
+      if (problem) {
+        // Decrease unique solvers count
+        problem.uniqueSolvers = Math.max(0, (problem.uniqueSolvers || 1) - 1);
+        await problem.save(sessionOptions);
+      }
+    } catch (problemError) {
+      console.warn(`Could not update problem ${problemId}:`, problemError.message);
+    }
+  }
+
+  for (const problemId of user.problemsAttempted) {
+    try {
+      const problem = await Problem.findById(problemId, null, sessionOptions);
+      if (problem) {
+        // Decrease unique attempts count
+        problem.uniqueAttempts = Math.max(0, (problem.uniqueAttempts || 1) - 1);
+        await problem.save(sessionOptions);
+      }
+    } catch (problemError) {
+      console.warn(`Could not update problem ${problemId}:`, problemError.message);
+    }
+  }
+
+  // 6. Finally, delete the user account
+  await User.findByIdAndDelete(userId, sessionOptions);
+  console.log(`Deleted user account: ${user.username}`);
+}
 
 // Admin - Get all users
 exports.getAllUsers = async (req, res) => {
