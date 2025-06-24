@@ -20,6 +20,15 @@ const problemRequestSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    // ADD THESE TWO FIELDS:
+    inputFormat: {
+      type: String,
+      required: true,
+    },
+    outputFormat: {
+      type: String,
+      required: true,
+    },
     examples: [
       {
         input: { type: String, required: true },
@@ -49,6 +58,13 @@ const problemRequestSchema = new mongoose.Schema(
       python: { type: String },
       javascript: { type: String },
     },
+    // ADD THIS FIELD FOR FULL SOURCE TEMPLATES:
+    fullSourceTemplates: {
+      cpp: { type: String },
+      java: { type: String },
+      python: { type: String },
+      javascript: { type: String },
+    },
     // Solution provided by submitter
     solutionCode: {
       language: {
@@ -63,6 +79,13 @@ const problemRequestSchema = new mongoose.Schema(
         type: String,
       },
     ],
+    // ADD THIS OPTIONAL FIELD:
+    suggestedIncludes: {
+      cpp: [String],
+      java: [String],
+      python: [String],
+      javascript: [String],
+    },
     status: {
       type: String,
       enum: ["Pending", "Approved", "Rejected"],

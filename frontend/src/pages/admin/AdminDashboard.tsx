@@ -667,7 +667,7 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
                                         title="Reject"
                                         onClick={() => handleReviewTicket(ticket._id, "Rejected")}
                                       >
-                                        <i className="bi bi-x-lg"></i>
+                                        <i className="bi bi-x-lg">Reject</i>
                                       </button>
                                     </>
                                   )}
@@ -1493,8 +1493,7 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
                       className="btn btn-danger"
                       onClick={() => handleReviewTicket(selectedTicket._id, "Rejected")}
                     >
-                      <i className="bi bi-x-lg me-1"></i>
-                      Reject
+                      <i className="bi bi-x-lg me-1">Reject</i>
                     </button>
                     <button
                       type="button"

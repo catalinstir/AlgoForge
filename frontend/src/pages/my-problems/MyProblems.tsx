@@ -290,14 +290,14 @@ const MyProblems = ({ currentUser }: MyProblemsProps) => {
                             className="btn btn-outline-info btn-sm"
                             title="View details"
                           >
-                            <i className="bi bi-eye"></i>
+                            <i className="bi bi-eye">Details</i>
                           </button>
                           {request.status === "Pending" && (
                             <button 
                               className="btn btn-outline-warning btn-sm"
                               title="Edit submission"
                             >
-                              <i className="bi bi-pencil"></i>
+                              <i className="bi bi-pencil">Edit</i>
                             </button>
                           )}
                           {request.status === "Approved" && request.approvedProblem && (
