@@ -977,7 +977,7 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
                                     title="View profile"
                                     onClick={() => window.open(`/profile/${user._id}`, '_blank')}
                                   >
-                                    <i className="bi bi-person"></i>
+                                    <i className="bi bi-person">Profile</i>
                                   </button>
                                   <div className="dropdown">
                                     <button 
@@ -986,7 +986,7 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
                                       data-bs-toggle="dropdown"
                                       title="Change role"
                                     >
-                                      <i className="bi bi-gear"></i>
+                                      <i className="bi bi-gear">Role</i>
                                     </button>
                                     <ul className="dropdown-menu dropdown-menu-dark">
                                       <li>
@@ -1014,7 +1014,7 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
                                     title="Ban/Unban user"
                                     onClick={() => handleBanUser(user._id, user.status || "Active")}
                                   >
-                                    <i className="bi bi-ban"></i>
+                                    <i className="bi bi-ban">Ban/Unban</i>
                                   </button>
                                 </div>
                               </td>
