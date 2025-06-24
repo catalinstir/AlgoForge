@@ -4,6 +4,8 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
   padding: 1.5rem 2rem;
   border: 1px solid #333;
+  position: relative;
+  z-index: 1;
 }
 
 .problems-container h2 {
@@ -14,6 +16,8 @@
   background-color: transparent;
   color: #e0e0e0;
   border-color: #444;
+  position: relative;
+  z-index: 2;
 }
 
 .table-dark th {
@@ -23,67 +27,174 @@
   color: #b0b0b0;
   font-weight: 500;
   white-space: nowrap;
-  z-index: 1040;
+  position: relative;
+  z-index: 3;
 }
 
 .table-dark td {
   border-color: #333;
   padding: 0.8rem 1rem;
   vertical-align: middle;
+  position: relative;
+  z-index: 2;
 }
 
 .problem-row {
   cursor: pointer;
   transition: background-color 0.2s ease;
+  position: relative;
+  z-index: 2;
 }
 
 .problem-row:hover {
-  background-color: #2a2a2a !important; /* Slightly lighter hover */
+  background-color: #2a2a2a !important;
+  z-index: 10;
 }
 
 .problem-title-link {
   font-weight: 500;
-  color: #a0a8ff; /* Lighter purple/blue */
+  color: #a0a8ff;
   text-decoration: none;
   transition: color 0.2s ease;
 }
 
 .problem-title-link:hover {
-  color: #c0c8ff; /* Even lighter on hover */
+  color: #c0c8ff;
   text-decoration: underline;
 }
 
 /* Difficulty and Acceptance Styles */
 .text-success {
   color: #28a745 !important;
-} /* Bootstrap success green */
+}
 .text-warning {
   color: #ffc107 !important;
-} /* Bootstrap warning yellow */
+}
 .text-danger {
   color: #dc3545 !important;
-} /* Bootstrap danger red */
-
-/* Hover Preview Styling */
-.problem-hover-preview {
-  position: absolute;
-  /* Position it relative to the row - adjust as needed */
-  left: 50%; /* Start from the middle of the cell */
-  transform: translateX(-50%) translateY(5px); /* Center horizontally, move down slightly */
-  bottom: 100%; /* Position above the row */
-  margin-bottom: 10px; /* Space between row and preview */
-
-  width: 350px; /* Fixed width for the preview */
-  z-index: 1050;
-  pointer-events: none; /* Prevent hover preview from blocking clicks on row below */
-
-  /* Use ProblemPreview's styling but add positioning context */
-  opacity: 0; /* Hidden by default */
-  visibility: hidden;
-  transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out;
 }
 
-.problem-row:hover .problem-hover-preview {
-  opacity: 1; /* Show on hover */
+/* Problem Preview Hover Card - Fixed Z-Index */
+.problem-hover-preview {
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 350px;
+  z-index: 9999 !important;
+  pointer-events: none;
+  opacity: 1;
   visibility: visible;
+}
+
+/* Difficulty Filter Buttons */
+.btn-outline-success {
+  border-color: #28a745;
+  color: #28a745;
+}
+
+.btn-outline-success:hover {
+  background-color: #28a745;
+  border-color: #28a745;
+  color: white;
+}
+
+.btn-success {
+  background-color: #28a745;
+  border-color: #28a745;
+}
+
+.btn-outline-warning {
+  border-color: #ffc107;
+  color: #ffc107;
+}
+
+.btn-outline-warning:hover {
+  background-color: #ffc107;
+  border-color: #ffc107;
+  color: #212529;
+}
+
+.btn-warning {
+  background-color: #ffc107;
+  border-color: #ffc107;
+  color: #212529;
+}
+
+.btn-outline-danger {
+  border-color: #dc3545;
+  color: #dc3545;
+}
+
+.btn-outline-danger:hover {
+  background-color: #dc3545;
+  border-color: #dc3545;
+  color: white;
+}
+
+.btn-danger {
+  background-color: #dc3545;
+  border-color: #dc3545;
+}
+
+/* Active Filter Badges */
+.badge.bg-secondary {
+  background-color: #6c757d !important;
+}
+
+.badge .btn-close {
+  padding: 0;
+  margin: 0;
+  width: auto;
+  height: auto;
+  background: none;
+}
+
+/* Form Controls */
+.form-select.bg-dark {
+  background-color: #212529 !important;
+  border-color: #495057;
+  color: #e0e0e0;
+}
+
+.form-select.bg-dark:focus {
+  background-color: #212529 !important;
+  border-color: #80bdff;
+  color: #e0e0e0;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.form-control.bg-dark {
+  background-color: #212529 !important;
+  border-color: #495057;
+  color: #e0e0e0;
+}
+
+.form-control.bg-dark:focus {
+  background-color: #212529 !important;
+  border-color: #80bdff;
+  color: #e0e0e0;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.form-control.bg-dark::placeholder {
+  color: #6c757d;
+}
+
+/* Filter Section Styling */
+.form-label {
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+/* Clear All Button */
+.btn-outline-secondary {
+  border-color: #6c757d;
+  color: #6c757d;
+}
+
+.btn-outline-secondary:hover {
+  background-color: #6c757d;
+  border-color: #6c757d;
+  color: white;
 }

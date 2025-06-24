@@ -104,6 +104,13 @@ const ProblemList = () => {
     setFilter((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleDifficultyButtonClick = (difficulty: string) => {
+    setFilter((prev) => ({ 
+      ...prev, 
+      difficulty: prev.difficulty === difficulty ? "" : difficulty 
+    }));
+  };
+
   const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     fetchProblems();
@@ -142,26 +149,69 @@ const ProblemList = () => {
     );
   }
 
+  if (error) {
+    return (
+      <div className="problems-container">
+        <h2 className="text-light mb-4">Problems</h2>
+        <div className="alert alert-danger">
+          <h5>Error Loading Problems</h5>
+          <p>{error}</p>
+          <button 
+            className="btn btn-outline-light btn-sm mt-2" 
+            onClick={fetchProblems}
+          >
+            Try Again
+          </button>
+          {debugInfo && (
+            <details className="mt-3">
+              <summary>Debug Information (Click to expand)</summary>
+              <pre className="mt-2 text-sm">
+                {JSON.stringify(debugInfo, null, 2)}
+              </pre>
+            </details>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="problems-container">
       <h2 className="text-light mb-4">Problems</h2>
 
+      {/* Filter Section */}
       <div className="row mb-4">
-        <div className="col-md-3">
-          <select
-            className="form-select bg-dark text-light border-secondary"
-            name="difficulty"
-            value={filter.difficulty}
-            onChange={handleFilterChange}
-            aria-label="Filter by difficulty"
-          >
-            <option value="">All Difficulties</option>
-            <option value="Easy">Easy</option>
-            <option value="Medium">Medium</option>
-            <option value="Hard">Hard</option>
-          </select>
+        {/* Difficulty Buttons */}
+        <div className="col-md-6 mb-3">
+          <label className="form-label text-light mb-2">Difficulty</label>
+          <div className="d-flex gap-2">
+            <button
+              type="button"
+              className={`btn ${filter.difficulty === "Easy" ? "btn-success" : "btn-outline-success"}`}
+              onClick={() => handleDifficultyButtonClick("Easy")}
+            >
+              Easy
+            </button>
+            <button
+              type="button"
+              className={`btn ${filter.difficulty === "Medium" ? "btn-warning" : "btn-outline-warning"}`}
+              onClick={() => handleDifficultyButtonClick("Medium")}
+            >
+              Medium
+            </button>
+            <button
+              type="button"
+              className={`btn ${filter.difficulty === "Hard" ? "btn-danger" : "btn-outline-danger"}`}
+              onClick={() => handleDifficultyButtonClick("Hard")}
+            >
+              Hard
+            </button>
+          </div>
         </div>
-        <div className="col-md-3">
+
+        {/* Category Filter */}
+        <div className="col-md-6 mb-3">
+          <label className="form-label text-light mb-2">Category</label>
           <select
             className="form-select bg-dark text-light border-secondary"
             name="category"
@@ -175,72 +225,85 @@ const ProblemList = () => {
             <option value="Linked Lists">Linked Lists</option>
             <option value="Trees">Trees</option>
             <option value="Dynamic Programming">Dynamic Programming</option>
+            <option value="Hash Table">Hash Table</option>
+            <option value="Math">Math</option>
+            <option value="Two Pointers">Two Pointers</option>
+            <option value="Binary Search">Binary Search</option>
           </select>
         </div>
-        <div className="col-md-6">
+
+        {/* Search Bar */}
+        <div className="col-12 mb-3">
+          <label className="form-label text-light mb-2">Search</label>
           <form onSubmit={handleSearchSubmit}>
             <div className="input-group">
               <input
                 type="text"
                 className="form-control bg-dark text-light border-secondary"
-                placeholder="Search problems..."
+                placeholder="Search problems by title or description..."
                 name="search"
                 value={filter.search}
                 onChange={handleFilterChange}
                 aria-label="Search problems"
               />
-              <button className="btn btn-primary" type="submit">
-                <i className="bi bi-search"></i> Search
-              </button>
             </div>
           </form>
         </div>
       </div>
 
-      {error && (
-        <div className="alert alert-danger p-3 mb-4" role="alert">
-          <h4 className="alert-heading">Error</h4>
-          <p>{error}</p>
-
-          {debugInfo && (
-            <div className="mt-3">
-              <details>
-                <summary>Debug Information</summary>
-                <pre className="mt-2" style={{ whiteSpace: "pre-wrap" }}>
-                  {JSON.stringify(debugInfo, null, 2)}
-                </pre>
-              </details>
-            </div>
+      {/* Active Filters Display */}
+      {(filter.difficulty || filter.category || filter.search) && (
+        <div className="mb-3">
+          <small className="text-muted">Active filters: </small>
+          {filter.difficulty && (
+            <span className="badge bg-secondary me-2">
+              Difficulty: {filter.difficulty}
+              <button 
+                className="btn-close btn-close-white ms-1" 
+                style={{ fontSize: "0.6rem" }}
+                onClick={() => setFilter(prev => ({ ...prev, difficulty: "" }))}
+              ></button>
+            </span>
           )}
-
-          <hr />
-          <button className="btn btn-outline-danger" onClick={fetchProblems}>
-            Try Again
+          {filter.category && (
+            <span className="badge bg-secondary me-2">
+              Category: {filter.category}
+              <button 
+                className="btn-close btn-close-white ms-1" 
+                style={{ fontSize: "0.6rem" }}
+                onClick={() => setFilter(prev => ({ ...prev, category: "" }))}
+              ></button>
+            </span>
+          )}
+          {filter.search && (
+            <span className="badge bg-secondary me-2">
+              Search: "{filter.search}"
+              <button 
+                className="btn-close btn-close-white ms-1" 
+                style={{ fontSize: "0.6rem" }}
+                onClick={() => setFilter(prev => ({ ...prev, search: "" }))}
+              ></button>
+            </span>
+          )}
+          <button 
+            className="btn btn-sm btn-outline-secondary"
+            onClick={() => setFilter({ difficulty: "", category: "", search: "" })}
+          >
+            Clear All
           </button>
         </div>
       )}
 
-      {/* Show a subtle refresh indicator when loading but problems exist */}
-      {loading && problems.length > 0 && (
-        <div className="alert alert-info py-2 mb-3" role="alert">
-          <div className="d-flex align-items-center">
-            <div className="spinner-border spinner-border-sm text-info me-2" role="status">
-              <span className="visually-hidden">Refreshing...</span>
-            </div>
-            <small>Refreshing problem stats...</small>
-          </div>
-        </div>
-      )}
-
-      <div className="table-responsive">
-        <table className="table table-dark table-hover align-middle">
+      {/* Problems Table */}
+      <div className="table-responsive" style={{ position: "relative", zIndex: 1 }}>
+        <table className="table table-dark table-hover">
           <thead>
             <tr>
-              <th scope="col">#</th>
-              <th scope="col">Title</th>
-              <th scope="col">Difficulty</th>
-              <th scope="col">Acceptance</th>
-              <th scope="col">Submissions</th>
+              <th scope="col" style={{ width: "5%" }}>#</th>
+              <th scope="col" style={{ width: "50%" }}>Title</th>
+              <th scope="col" style={{ width: "15%" }}>Difficulty</th>
+              <th scope="col" style={{ width: "15%" }}>Acceptance</th>
+              <th scope="col" style={{ width: "15%" }}>Submissions</th>
             </tr>
           </thead>
           <tbody>
@@ -260,7 +323,7 @@ const ProblemList = () => {
                     style={{ position: "relative" }}
                   >
                     <td>{displayIndex}</td>
-                    <td>
+                    <td style={{ position: "relative" }}>
                       <Link
                         to={`/problem/${problemId}?index=${displayIndex}`}
                         className="problem-title-link"
@@ -268,7 +331,18 @@ const ProblemList = () => {
                         {problem.title}
                       </Link>
                       {hoveredProblemId === problemId && (
-                        <div className="problem-hover-preview">
+                        <div 
+                          className="problem-hover-preview"
+                          style={{
+                            position: "absolute",
+                            top: "-20px",
+                            left: "50%",
+                            transform: "translateX(-50%)",
+                            zIndex: 9999,
+                            pointerEvents: "none",
+                            width: "350px"
+                          }}
+                        >
                           <ProblemPreview problem={problem} />
                         </div>
                       )}
@@ -301,6 +375,18 @@ const ProblemList = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Debug Information */}
+      {debugInfo && (
+        <div className="mt-4">
+          <div className="alert alert-info">
+            <h6>Debug Information:</h6>
+            <pre style={{ fontSize: "0.8rem", maxHeight: "200px", overflow: "auto" }}>
+              {JSON.stringify(debugInfo, null, 2)}
+            </pre>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

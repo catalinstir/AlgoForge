@@ -408,14 +408,143 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
     }
   };
 
-  const handleReviewTicket = async (ticketId: string, status: "Approved" | "Rejected", feedback?: string) => {
-    try {
-      await problemRequestAPI.reviewRequest(ticketId, { status, feedback });
-      fetchTickets(); // Refresh the tickets list
-      setSelectedTicket(null); // Close modal
-    } catch (error) {
-      console.error("Error reviewing ticket:", error);
+  const exportToCSV = (data: any[], filename: string, headers: string[]) => {
+    if (!data || data.length === 0) {
+      alert("No data to export");
+      return;
     }
+
+    // Create CSV content
+    const csvContent = [
+      headers.join(","), // Header row
+      ...data.map(row => 
+        headers.map(header => {
+          let value = "";
+          
+          // Handle nested properties and special cases
+          switch (header) {
+            case "User":
+              value = row.username || "";
+              break;
+            case "Email":
+              value = row.email || "";
+              break;
+            case "Role":
+              value = row.role || "";
+              break;
+            case "Problems Solved":
+              value = row.problemsSolvedCount || 0;
+              break;
+            case "Problems Attempted":
+              value = row.problemsAttemptedCount || 0;
+              break;
+            case "Problems Uploaded":
+              value = row.problemsUploadedCount || 0;
+              break;
+            case "Success Rate":
+              value = `${(row.successRate || 0).toFixed(1)}%`;
+              break;
+            case "Joined":
+              value = formatDate(row.createdAt);
+              break;
+            case "ID":
+              value = row._id || "";
+              break;
+            case "Title":
+              value = row.title || "";
+              break;
+            case "Difficulty":
+              value = row.difficulty || "";
+              break;
+            case "Acceptance":
+              value = row.acceptance || "";
+              break;
+            case "Submissions":
+              value = row.totalSubmissions || 0;
+              break;
+            case "Solvers":
+              value = row.totalSolvers || 0;
+              break;
+            case "Author":
+              value = row.author?.username || "Unknown";
+              break;
+            case "Categories":
+              value = Array.isArray(row.categories) ? row.categories.join("; ") : "";
+              break;
+            case "Problem":
+              value = row.problem?.title || "Unknown Problem";
+              break;
+            case "Problem Difficulty":
+              value = row.problem?.difficulty || "";
+              break;
+            case "Status":
+              value = row.status || "";
+              break;
+            case "Language":
+              value = row.language || "";
+              break;
+            case "Test Cases Passed":
+              value = row.testCasesPassed || 0;
+              break;
+            case "Total Test Cases":
+              value = row.totalTestCases || 0;
+              break;
+            case "Score":
+              value = row.totalTestCases > 0 
+                ? `${row.testCasesPassed || 0}/${row.totalTestCases} (${(((row.testCasesPassed || 0) / row.totalTestCases) * 100).toFixed(1)}%)`
+                : "0/0 (0%)";
+              break;
+            case "Execution Time":
+              value = `${row.executionTime || 0}ms`;
+              break;
+            case "Memory Used":
+              value = `${row.memoryUsed || 0}MB`;
+              break;
+            case "Submitted":
+              value = formatDate(row.createdAt);
+              break;
+            default:
+              value = row[header] || "";
+          }
+          
+          // Escape commas and quotes in CSV
+          if (typeof value === 'string' && (value.includes(',') || value.includes('"') || value.includes('\n'))) {
+            value = `"${value.replace(/"/g, '""')}"`;
+          }
+          
+          return value;
+        }).join(",")
+      )
+    ].join("\n");
+
+    // Create and download file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const exportProblems = () => {
+    const headers = ["ID", "Title", "Difficulty", "Acceptance", "Submissions", "Solvers", "Author", "Categories"];
+    const filename = `problems_export_${new Date().toISOString().split('T')[0]}.csv`;
+    exportToCSV(problems, filename, headers);
+  };
+
+  const exportUsers = () => {
+    const headers = ["User", "Email", "Role", "Problems Solved", "Problems Attempted", "Problems Uploaded", "Success Rate", "Joined"];
+    const filename = `users_export_${new Date().toISOString().split('T')[0]}.csv`;
+    exportToCSV(users, filename, headers);
+  };
+
+  const exportSubmissions = () => {
+    const headers = ["User", "Problem", "Problem Difficulty", "Status", "Language", "Score", "Execution Time", "Memory Used", "Submitted"];
+    const filename = `submissions_export_${new Date().toISOString().split('T')[0]}.csv`;
+    exportToCSV(submissions, filename, headers);
   };
 
   const openTicketModal = (ticket: ProblemTicket) => {
@@ -723,6 +852,13 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
             <div className="tab-pane fade show active">
               <div className="d-flex justify-content-between align-items-center mb-3">
                 <h4 className="text-light mb-0">Problems ({problems.length})</h4>
+                <button 
+                  className="btn btn-success btn-sm"
+                  onClick={exportProblems}
+                >
+                  <i className="bi bi-download me-1"></i>
+                  Export CSV
+                </button>
               </div>
               
               {loading ? (
@@ -810,12 +946,21 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
             <div className="tab-pane fade show active">
               <div className="d-flex justify-content-between align-items-center mb-3">
                 <h4 className="text-light mb-0">Users ({userPagination.total})</h4>
-                <button 
-                  className="btn btn-outline-secondary btn-sm"
-                  onClick={clearUserFilters}
-                >
-                  Clear Filters
-                </button>
+                <div className="d-flex gap-2">
+                  <button 
+                    className="btn btn-outline-secondary btn-sm"
+                    onClick={clearUserFilters}
+                  >
+                    Clear Filters
+                  </button>
+                  <button 
+                    className="btn btn-success btn-sm"
+                    onClick={exportUsers}
+                  >
+                    <i className="bi bi-download me-1"></i>
+                    Export CSV
+                  </button>
+                </div>
               </div>
 
               {/* User Filters */}
@@ -972,7 +1117,13 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
                   >
                     Clear Filters
                   </button>
-                  <button className="btn btn-info btn-sm">Export CSV</button>
+                  <button 
+                    className="btn btn-success btn-sm"
+                    onClick={exportSubmissions}
+                  >
+                    <i className="bi bi-download me-1"></i>
+                    Export CSV
+                  </button>
                 </div>
               </div>
 
