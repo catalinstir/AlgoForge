@@ -39,7 +39,6 @@ const problemSchema = new mongoose.Schema(
         isHidden: { type: Boolean, default: false },
       },
     ],
-    // Input/Output format description for users
     inputFormat: {
       type: String,
       required: true,
@@ -48,7 +47,6 @@ const problemSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    // Suggested includes/imports as comments - optional hints for users
     suggestedIncludes: {
       cpp: [String],
       java: [String], 
@@ -56,7 +54,6 @@ const problemSchema = new mongoose.Schema(
       javascript: [String],
     },
 
-    // Problem metadata
     author: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -71,7 +68,6 @@ const problemSchema = new mongoose.Schema(
       type: Date,
     },
     
-    // Statistics tracking
     totalSubmissions: {
       type: Number,
       default: 0,
@@ -89,14 +85,12 @@ const problemSchema = new mongoose.Schema(
       default: 0,
     },
 
-    // Categories/tags for browsing
     categories: [
       {
         type: String,
       },
     ],
 
-    // Admin feedback for rejected problems
     rejectionReason: {
       type: String,
     },
@@ -106,14 +100,12 @@ const problemSchema = new mongoose.Schema(
   }
 );
 
-// Virtual for calculating acceptance rate
 problemSchema.virtual("acceptanceRate").get(function () {
   if (this.totalSubmissions === 0) return "0%";
   const rate = (this.successfulSubmissions / this.totalSubmissions) * 100;
   return `${rate.toFixed(1)}%`;
 });
 
-// Method to recalculate acceptance rate
 problemSchema.methods.calculateAcceptance = function() {
   const totalSubmissions = this.totalSubmissions || 0;
   const successfulSubmissions = this.successfulSubmissions || 0;
@@ -128,19 +120,15 @@ problemSchema.methods.calculateAcceptance = function() {
   return this.acceptance;
 };
 
-// Pre-save middleware to update acceptance field
 problemSchema.pre("save", function (next) {
-  // Always recalculate acceptance when saving
   this.calculateAcceptance();
   next();
 });
 
-// Post-save middleware for logging (optional)
 problemSchema.post("save", function(doc) {
   console.log(`Problem "${doc.title}" saved with acceptance: ${doc.acceptance} (${doc.successfulSubmissions}/${doc.totalSubmissions})`);
 });
 
-// Index for faster queries
 problemSchema.index({ status: 1, difficulty: 1 });
 problemSchema.index({ categories: 1 });
 problemSchema.index({ totalSubmissions: -1 });

@@ -35,11 +35,11 @@ const submissionSchema = new mongoose.Schema(
       default: "Pending",
     },
     executionTime: {
-      type: Number, // in milliseconds
+      type: Number,
       default: 0,
     },
     memoryUsed: {
-      type: Number, // in KB
+      type: Number, 
       default: 0,
     },
     testCasesPassed: {
@@ -53,7 +53,6 @@ const submissionSchema = new mongoose.Schema(
     errorMessage: {
       type: String,
     },
-    // Track test case results individually
     testResults: [
       {
         input: { type: String },
@@ -65,14 +64,12 @@ const submissionSchema = new mongoose.Schema(
     ],
   },
   {
-    timestamps: true, // Adds createdAt and updatedAt
+    timestamps: true, 
   }
 );
 
-// Index for faster lookups by user/problem combination
 submissionSchema.index({ user: 1, problem: 1 });
 
-// Virtual for pass rate percentage
 submissionSchema.virtual("passRate").get(function () {
   if (this.totalTestCases === 0) return 0;
   return (this.testCasesPassed / this.totalTestCases) * 100;

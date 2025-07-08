@@ -10,10 +10,8 @@ router.post("/run", submissionController.runCode);
 router.get("/", submissionController.getUserSubmissions);
 router.get("/:id", submissionController.getSubmission);
 
-// Existing route for getting submissions for a specific problem (admin only)
 router.get("/problem/:problemId", submissionController.getProblemSubmissions);
 
-// NEW ROUTES for admin functionality
 router.get("/admin/all", submissionController.getAllSubmissions);
 router.get("/admin/details/:id", submissionController.getSubmissionDetails);
 router.delete("/admin/:id", submissionController.deleteSubmission);

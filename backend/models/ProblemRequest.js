@@ -20,7 +20,6 @@ const problemRequestSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    // ADD THESE TWO FIELDS:
     inputFormat: {
       type: String,
       required: true,
@@ -58,14 +57,12 @@ const problemRequestSchema = new mongoose.Schema(
       python: { type: String },
       javascript: { type: String },
     },
-    // ADD THIS FIELD FOR FULL SOURCE TEMPLATES:
     fullSourceTemplates: {
       cpp: { type: String },
       java: { type: String },
       python: { type: String },
       javascript: { type: String },
     },
-    // Solution provided by submitter
     solutionCode: {
       language: {
         type: String,
@@ -79,7 +76,6 @@ const problemRequestSchema = new mongoose.Schema(
         type: String,
       },
     ],
-    // ADD THIS OPTIONAL FIELD:
     suggestedIncludes: {
       cpp: [String],
       java: [String],
@@ -101,7 +97,6 @@ const problemRequestSchema = new mongoose.Schema(
     feedback: {
       type: String,
     },
-    // If approved, reference to the created Problem
     approvedProblem: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Problem",

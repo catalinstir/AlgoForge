@@ -41,7 +41,6 @@ const ProblemDescription = ({ problem }: ProblemDescriptionProps) => {
     );
   };
 
-  // Format the author's username
   const formatAuthor = (author: any) => {
     if (!author) return "AlgoRush";
     if (typeof author === "string") return author;
@@ -49,17 +48,14 @@ const ProblemDescription = ({ problem }: ProblemDescriptionProps) => {
     return "Unknown";
   };
 
-  // Get problem ID (using either id or _id)
   const problemId = problem._id || problem.id;
 
-  // Use a numeric display ID if available, otherwise try to extract from the problemId
   let displayId;
   if (typeof problem.displayIndex === "number") {
     displayId = problem.displayIndex;
   } else if (typeof problem.id === "number") {
     displayId = problem.id;
   } else if (problemId) {
-    // Try to extract a number from the problemId
     const match = problemId.toString().match(/\d+/);
     displayId = match ? parseInt(match[0]) : "#";
   } else {

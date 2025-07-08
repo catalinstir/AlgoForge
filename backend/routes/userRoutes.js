@@ -3,12 +3,10 @@ const router = express.Router();
 const userController = require("../controllers/userController");
 const authMiddleware = require("../middleware/authMiddleware");
 
-// Public routes (no auth required)
 router.get("/profile/:id", userController.getUserById);
 router.get("/solved/:id", userController.getUserSolvedProblems);
 router.get("/uploaded/:id", userController.getUserUploadedProblems);
 
-// Protected routes (auth required)
 router.get("/me", authMiddleware, userController.getMe);
 router.get("/my-solved", authMiddleware, userController.getUserSolvedProblems);
 router.get(
@@ -24,10 +22,8 @@ router.get(
 router.put("/update-profile", authMiddleware, userController.updateProfile);
 router.put("/change-password", authMiddleware, userController.changePassword);
 
-// NEW: Delete account route
 router.delete("/delete-account", authMiddleware, userController.deleteAccount);
 
-// Admin routes
 router.get("/all", authMiddleware, userController.getAllUsers);
 router.put("/:id/role", authMiddleware, userController.updateUserRole);
 

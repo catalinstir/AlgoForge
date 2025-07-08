@@ -2,7 +2,6 @@ const User = require("../models/User");
 const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
 
-// Generate JWT token with proper error handling
 const generateToken = (userId) => {
   const secret = process.env.JWT_SECRET;
   
@@ -12,7 +11,7 @@ const generateToken = (userId) => {
   }
   
   return jwt.sign({ userId }, secret, {
-    expiresIn: "7d", // Extended token expiration to 7 days
+    expiresIn: "7d",
   });
 };
 
@@ -20,7 +19,6 @@ exports.register = async (req, res) => {
   const { username, email, password } = req.body;
 
   try {
-    // Check if user already exists
     const existingUser = await User.findOne({
       $or: [{ email }, { username }],
     });
@@ -34,20 +32,17 @@ exports.register = async (req, res) => {
       });
     }
 
-    // Create new user
     const user = new User({
       username,
       email,
       password,
-      role: "user", // Default role
+      role: "user",
     });
 
     await user.save();
 
-    // Generate token for immediate login after registration
     const token = generateToken(user._id);
 
-    // Return user data (excluding password) and token
     const userData = user.toObject();
     delete userData.password;
 
@@ -68,26 +63,21 @@ exports.login = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    // Find user by email
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({ error: "Invalid credentials." });
     }
 
-    // Check password
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       return res.status(400).json({ error: "Invalid credentials." });
     }
 
-    // Update last active timestamp
     user.lastActive = Date.now();
     await user.save();
 
-    // Generate token
     const token = generateToken(user._id);
 
-    // Return user data (excluding password) and token
     const userData = user.toObject();
     delete userData.password;
 
@@ -107,14 +97,12 @@ exports.getMe = async (req, res) => {
   try {
     const userId = req.user.userId;
 
-    // Get user with counts but without password
     const user = await User.findById(userId).select("-password").lean();
 
     if (!user) {
       return res.status(404).json({ error: "User not found." });
     }
 
-    // Get count of problems
     const problemCounts = {
       totalProblems: await mongoose
         .model("Problem")
@@ -134,13 +122,11 @@ exports.getMe = async (req, res) => {
   }
 };
 
-// Update the user's profile
 exports.updateProfile = async (req, res) => {
   const { username, email } = req.body;
   const userId = req.user.userId;
 
   try {
-    // Check if username or email are already taken by another user
     if (username || email) {
       const existingUser = await User.findOne({
         $and: [
@@ -164,7 +150,6 @@ exports.updateProfile = async (req, res) => {
       }
     }
 
-    // Update user fields
     const updateData = {};
     if (username) updateData.username = username;
     if (email) updateData.email = email;
@@ -186,7 +171,6 @@ exports.updateProfile = async (req, res) => {
   }
 };
 
-// Change password
 exports.changePassword = async (req, res) => {
   const { currentPassword, newPassword } = req.body;
   const userId = req.user.userId;
@@ -197,13 +181,11 @@ exports.changePassword = async (req, res) => {
       return res.status(404).json({ error: "User not found." });
     }
 
-    // Verify current password
     const isMatch = await user.comparePassword(currentPassword);
     if (!isMatch) {
       return res.status(400).json({ error: "Current password is incorrect." });
     }
 
-    // Update password
     user.password = newPassword;
     await user.save();
 

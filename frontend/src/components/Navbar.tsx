@@ -1,11 +1,11 @@
 import React from "react";
-import { Link, NavLink } from "react-router-dom"; // Use NavLink for active styling
-import { User } from "../types"; // Import from types.ts
+import { Link, NavLink } from "react-router-dom";
+import { User } from "../types";
 
 interface NavbarProps {
   isLoggedIn: boolean;
   currentUser: User | null;
-  onLoginClick: () => void; // Function to trigger login modal/page
+  onLoginClick: () => void;
   onLogout: () => void;
 }
 
@@ -16,7 +16,6 @@ const Navbar = ({
   onLogout,
 }: NavbarProps) => {
   return (
-    // Navbar styling from App.css
     <nav className="navbar navbar-expand-lg navbar-dark sticky-top">
       <div className="container-fluid">
         {/* Brand Logo */}
@@ -75,7 +74,6 @@ const Navbar = ({
           {/* Right side - User/Login */}
           <div className="d-flex align-items-center">
             {isLoggedIn && currentUser ? (
-              // User Dropdown Menu
               <div className="dropdown">
                 <button
                   className="btn btn-dark dropdown-toggle d-flex align-items-center"
@@ -127,11 +125,10 @@ const Navbar = ({
                 </ul>
               </div>
             ) : (
-              // Login Button
               <button
                 className="btn btn-outline-light"
                 type="button"
-                onClick={onLoginClick} // Trigger login modal/page
+                onClick={onLoginClick}
               >
                 Login / Sign Up
               </button>

@@ -47,7 +47,6 @@ const CodeEditor = ({ code, language, onChange }: CodeEditorProps) => {
       e.preventDefault();
       const tab = "  ";
 
-      // If text is selected
       if (start !== end) {
         const selectedLines = value.substring(start, end).split("\n");
         let newStart = start;

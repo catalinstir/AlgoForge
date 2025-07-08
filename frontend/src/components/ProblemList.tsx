@@ -23,7 +23,6 @@ const ProblemList = () => {
     fetchProblems();
   }, [filter]);
 
-  // Listen for problem solved events to refresh the list
   useEffect(() => {
     const handleProblemSolved = () => {
       console.log("Problem solved event received, refreshing problem list...");
@@ -52,14 +51,11 @@ const ProblemList = () => {
       const response = await problemAPI.getAllProblems(params);
       console.log("Problems API response:", response);
 
-      // Check if the response data is an array
       if (Array.isArray(response.data)) {
-        // Ensure each problem has an id field (use _id if id is not available)
-        // Also add a displayIndex for showing sequential numbering
         const processedProblems = response.data.map((problem, index) => ({
           ...problem,
           id: problem.id || problem._id,
-          displayIndex: index + 1, // Add 1-based index
+          displayIndex: index + 1,
         }));
         setProblems(processedProblems);
       } else {
@@ -309,9 +305,7 @@ const ProblemList = () => {
           <tbody>
             {problems.length > 0 ? (
               problems.map((problem, index) => {
-                // Ensure problem ID is available (either id or _id)
                 const problemId = problem.id || problem._id;
-                // Use 1-based index for display
                 const displayIndex = index + 1;
 
                 return (

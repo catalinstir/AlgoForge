@@ -347,15 +347,15 @@ exports.reviewProblemRequest = async (req, res) => {
         title: request.title,
         difficulty: request.difficulty,
         description: request.description,
-        inputFormat: request.inputFormat, // ADD THIS
-        outputFormat: request.outputFormat, // ADD THIS
+        inputFormat: request.inputFormat,
+        outputFormat: request.outputFormat,
         examples: request.examples,
         constraints: request.constraints,
         testCases: request.testCases,
         functionName: request.functionName,
         codeTemplates: request.codeTemplates,
-        fullSourceTemplates: request.fullSourceTemplates || {}, // ADD THIS
-        suggestedIncludes: request.suggestedIncludes || {}, // ADD THIS
+        fullSourceTemplates: request.fullSourceTemplates || {},
+        suggestedIncludes: request.suggestedIncludes || {},
         author: request.submitter,
         categories: request.categories,
         solutionCode: {

@@ -9,7 +9,6 @@ exports.submitSolution = async (req, res) => {
     const { problemId, code, language } = req.body;
     const userId = req.user.userId;
 
-    // Validate input
     if (!problemId || !code || !language) {
       return res.status(400).json({ error: "Missing required fields." });
     }
@@ -19,7 +18,6 @@ exports.submitSolution = async (req, res) => {
       return res.status(400).json({ error: "Invalid language." });
     }
 
-    // Currently supporting C++, Python, and JavaScript
     if (!["cpp", "python", "javascript"].includes(language)) {
       return res
         .status(400)
@@ -39,14 +37,12 @@ exports.submitSolution = async (req, res) => {
       return res.status(403).json({ error: "Problem is not published." });
     }
 
-    // Execute all test cases using the execution service
     const executionResults = await executionService.runAllTests(
       code,
       problem.testCases,
       language
     );
 
-    // Create submission record
     const submission = new Submission({
       user: userId,
       problem: problemId,
@@ -54,7 +50,7 @@ exports.submitSolution = async (req, res) => {
       language,
       status: executionResults.status,
       executionTime: executionResults.executionTime,
-      memoryUsed: 0, // Will require additional measurement
+      memoryUsed: 0,
       testCasesPassed: executionResults.testCasesPassed,
       totalTestCases: executionResults.totalTestCases,
       testResults: executionResults.testResults,
@@ -62,52 +58,41 @@ exports.submitSolution = async (req, res) => {
 
     await submission.save();
 
-    // Update user and problem stats (without transactions for local dev)
     try {
-      // Get user data first
       const user = await User.findById(userId);
       
-      // Track if this is the user's first attempt at this problem
       const isFirstAttempt = !user.problemsAttempted.includes(problemId);
       const wasAlreadySolved = user.problemsSolved.includes(problemId);
       
-      // Always increment total submissions
       await User.findByIdAndUpdate(userId, { $inc: { totalSubmissions: 1 } });
 
-      // Add to attempted if first attempt
       if (isFirstAttempt) {
         await User.findByIdAndUpdate(userId, { 
           $addToSet: { problemsAttempted: problemId } 
         });
       }
 
-      // If the solution is accepted and user hasn't solved this problem before
       const isNewSolver = executionResults.status === "Accepted" && !wasAlreadySolved;
       
       if (isNewSolver) {
-        // Add to solved problems
         await User.findByIdAndUpdate(userId, { 
           $addToSet: { problemsSolved: problemId } 
         });
         
-        // Update difficulty tracking
         const difficultyField = `solvedByDifficulty.${problem.difficulty}`;
         await User.findByIdAndUpdate(userId, { 
           $inc: { [difficultyField]: 1 } 
         });
       }
 
-      // Recalculate success rate
       const updatedUser = await User.findById(userId);
       if (updatedUser.problemsAttempted.length > 0) {
         const successRate = (updatedUser.problemsSolved.length / updatedUser.problemsAttempted.length) * 100;
         await User.findByIdAndUpdate(userId, { successRate });
       }
 
-      // Update problem stats - CRITICAL: Use .save() to trigger middleware
       const problemToUpdate = await Problem.findById(problemId);
       
-      // Update the stats
       problemToUpdate.totalSubmissions = (problemToUpdate.totalSubmissions || 0) + 1;
       
       if (executionResults.status === "Accepted") {
@@ -122,7 +107,6 @@ exports.submitSolution = async (req, res) => {
         problemToUpdate.uniqueSolvers = (problemToUpdate.uniqueSolvers || 0) + 1;
       }
 
-      // IMPORTANT: Use .save() to trigger the pre-save middleware that calculates acceptance rate
       await problemToUpdate.save();
 
       console.log(`Updated stats for problem ${problemToUpdate.title}:`, {
@@ -136,13 +120,10 @@ exports.submitSolution = async (req, res) => {
 
     } catch (statsError) {
       console.error("Error updating stats:", statsError);
-      // Don't fail the submission if stats update fails
     }
 
-    // Get updated user data to return current counts
     const updatedUser = await User.findById(userId).select('problemsSolved problemsAttempted');
     
-    // Send response (filter out hidden test cases for the user)
     res.status(201).json({
       submission: {
         id: submission._id,
@@ -154,7 +135,6 @@ exports.submitSolution = async (req, res) => {
         passRate: submission.passRate,
       },
       testResults: executionResults.testResults.filter((test) => !test.hidden),
-      // Include updated user stats for frontend
       userStats: {
         problemsSolvedCount: updatedUser.problemsSolved.length,
         problemsAttemptedCount: updatedUser.problemsAttempted.length,
@@ -180,7 +160,6 @@ exports.runCode = async (req, res) => {
       return res.status(400).json({ error: "Invalid language." });
     }
 
-    // Currently supporting C++, Python, and JavaScript
     if (!["cpp", "python", "javascript"].includes(language)) {
       return res
         .status(400)
@@ -196,7 +175,6 @@ exports.runCode = async (req, res) => {
       return res.status(404).json({ error: "Problem not found." });
     }
 
-    // Run just the example test cases (not hidden test cases) for "Run Code"
     const exampleTests = problem.examples.map((example) => ({
       input: example.input,
       output: example.output,
@@ -215,7 +193,7 @@ exports.runCode = async (req, res) => {
           ? "All Tests Passed"
           : "Some Tests Failed",
       executionTime: executionResults.executionTime,
-      memoryUsed: 0, // Will require additional measurement
+      memoryUsed: 0,
       testCasesPassed: executionResults.testCasesPassed,
       totalTestCases: exampleTests.length,
       testResults: executionResults.testResults,
@@ -356,13 +334,11 @@ exports.getAllSubmissions = async (req, res) => {
       page = 1 
     } = req.query;
 
-    // Check if user is admin
     const user = await User.findById(userId);
     if (!user || user.role !== "admin") {
       return res.status(403).json({ error: "Access denied. Admin only." });
     }
 
-    // Build query
     const query = {};
     
     if (status) {
@@ -377,7 +353,6 @@ exports.getAllSubmissions = async (req, res) => {
       if (mongoose.Types.ObjectId.isValid(problemId)) {
         query.problem = problemId;
       } else {
-        // If not a valid ObjectId, search by problem title
         const problems = await Problem.find({ 
           title: { $regex: problemId, $options: "i" } 
         }).select('_id');
@@ -389,7 +364,6 @@ exports.getAllSubmissions = async (req, res) => {
       if (mongoose.Types.ObjectId.isValid(filterUserId)) {
         query.user = filterUserId;
       } else {
-        // If not a valid ObjectId, search by username
         const users = await User.find({ 
           username: { $regex: filterUserId, $options: "i" } 
         }).select('_id');
@@ -405,7 +379,7 @@ exports.getAllSubmissions = async (req, res) => {
       .limit(parseInt(limit))
       .populate("user", "username email")
       .populate("problem", "title difficulty")
-      .select("-code") // Don't include the actual code for privacy
+      .select("-code")
       .lean();
 
     const totalSubmissions = await Submission.countDocuments(query);
@@ -425,13 +399,11 @@ exports.getAllSubmissions = async (req, res) => {
   }
 };
 
-// Add this method for deleting submissions (admin only)
 exports.deleteSubmission = async (req, res) => {
   try {
     const userId = req.user.userId;
     const submissionId = req.params.id;
 
-    // Check if user is admin
     const user = await User.findById(userId);
     if (!user || user.role !== "admin") {
       return res.status(403).json({ error: "Access denied. Admin only." });
@@ -446,14 +418,11 @@ exports.deleteSubmission = async (req, res) => {
       return res.status(404).json({ error: "Submission not found." });
     }
 
-    // Delete the submission
     await Submission.findByIdAndDelete(submissionId);
 
-    // Update user stats if this was an accepted submission
     if (submission.status === "Accepted") {
       const submissionUser = await User.findById(submission.user);
       if (submissionUser) {
-        // Check if this was the user's only accepted submission for this problem
         const otherAcceptedSubmissions = await Submission.countDocuments({
           user: submission.user,
           problem: submission.problem,
@@ -462,12 +431,10 @@ exports.deleteSubmission = async (req, res) => {
         });
 
         if (otherAcceptedSubmissions === 0) {
-          // Remove from solved problems
           await User.findByIdAndUpdate(submission.user, {
             $pull: { problemsSolved: submission.problem }
           });
 
-          // Update difficulty tracking
           const problem = await Problem.findById(submission.problem);
           if (problem) {
             const difficultyField = `solvedByDifficulty.${problem.difficulty}`;
@@ -475,18 +442,15 @@ exports.deleteSubmission = async (req, res) => {
               $inc: { [difficultyField]: -1 }
             });
 
-            // Update problem stats
             problem.uniqueSolvers = Math.max(0, (problem.uniqueSolvers || 1) - 1);
             await problem.save();
           }
         }
 
-        // Update total submissions count
         await User.findByIdAndUpdate(submission.user, {
           $inc: { totalSubmissions: -1 }
         });
 
-        // Recalculate success rate
         const updatedUser = await User.findById(submission.user);
         if (updatedUser.problemsAttempted.length > 0) {
           const successRate = (updatedUser.problemsSolved.length / updatedUser.problemsAttempted.length) * 100;
@@ -495,14 +459,13 @@ exports.deleteSubmission = async (req, res) => {
       }
     }
 
-    // Update problem submission stats
     const problem = await Problem.findById(submission.problem);
     if (problem) {
       problem.totalSubmissions = Math.max(0, (problem.totalSubmissions || 1) - 1);
       if (submission.status === "Accepted") {
         problem.successfulSubmissions = Math.max(0, (problem.successfulSubmissions || 1) - 1);
       }
-      await problem.save(); // This will trigger acceptance rate recalculation
+      await problem.save();
     }
 
     res.json({ 
@@ -520,7 +483,6 @@ exports.deleteSubmission = async (req, res) => {
   }
 };
 
-// Add this method for getting submission details (admin only)
 exports.getSubmissionDetails = async (req, res) => {
   try {
     const userId = req.user.userId;
@@ -541,7 +503,6 @@ exports.getSubmissionDetails = async (req, res) => {
 
     const user = await User.findById(userId);
 
-    // Allow access if user is admin or if it's their own submission
     if (submission.user._id.toString() !== userId && (!user || user.role !== "admin")) {
       return res.status(403).json({ error: "Access denied." });
     }

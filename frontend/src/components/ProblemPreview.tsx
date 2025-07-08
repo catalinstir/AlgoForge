@@ -27,7 +27,6 @@ const ProblemPreview = ({ problem }: ProblemPreviewProps) => {
       : problem.description
     : "No description available.";
 
-  // Get display ID for the problem
   let displayId;
   if (typeof problem.displayIndex === "number") {
     displayId = problem.displayIndex;

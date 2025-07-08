@@ -2,7 +2,6 @@ const jwt = require("jsonwebtoken");
 
 module.exports = (req, res, next) => {
   try {
-    // Get token from authorization header
     const authHeader = req.header("Authorization");
 
     if (!authHeader) {
@@ -11,7 +10,6 @@ module.exports = (req, res, next) => {
         .json({ error: "Access denied. No token provided." });
     }
 
-    // Extract token - support both "Bearer token" and just "token" formats
     const token = authHeader.startsWith("Bearer ")
       ? authHeader.replace("Bearer ", "")
       : authHeader;
@@ -22,7 +20,6 @@ module.exports = (req, res, next) => {
         .json({ error: "Access denied. Invalid token format." });
     }
 
-    // Verify token
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       req.user = decoded;

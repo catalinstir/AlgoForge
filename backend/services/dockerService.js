@@ -6,7 +6,7 @@ const os = require('os');
 
 class DockerService {
   constructor() {
-    this.executionTimeoutMs = process.env.CODE_EXECUTION_TIMEOUT_MS || 10000; // 10 seconds timeout
+    this.executionTimeoutMs = process.env.CODE_EXECUTION_TIMEOUT_MS || 10000; 
     this.tempDir = path.join(os.tmpdir(), 'algorush-executions');
     this.createTempDirIfNotExists();
   }
@@ -20,7 +20,6 @@ class DockerService {
     }
   }
 
-  // Execute C++ code
   async executeCppCode(code, input) {
     const executionId = uuidv4();
     const executionDir = path.join(this.tempDir, executionId);
@@ -30,7 +29,6 @@ class DockerService {
       await fs.writeFile(path.join(executionDir, 'solution.cpp'), code);
       await fs.writeFile(path.join(executionDir, 'input.txt'), input);
 
-      // Compile the code
       const compileCmd = [
         'run', '--rm', '--network=none', '--memory=256m', '--cpus=1.0',
         '--ulimit', 'nproc=50:50',
@@ -52,7 +50,6 @@ class DockerService {
         };
       }
       
-      // Execute the compiled binary (program reads from input.txt)
       const runCmd = [
         'run', '--rm', '--network=none', '--memory=256m', '--cpus=1.0',
         '--ulimit', 'nproc=50:50',
@@ -90,7 +87,6 @@ class DockerService {
     }
   }
 
-  // Execute Python code
   async executePythonCode(code, input) {
     const executionId = uuidv4();
     const executionDir = path.join(this.tempDir, executionId);
@@ -100,7 +96,6 @@ class DockerService {
       await fs.writeFile(path.join(executionDir, 'solution.py'), code);
       await fs.writeFile(path.join(executionDir, 'input.txt'), input);
 
-      // Execute the Python code (program reads from input.txt)
       const runCmd = [
         'run', '--rm', '--network=none', '--memory=256m', '--cpus=1.0',
         '--ulimit', 'nproc=50:50',
@@ -138,7 +133,6 @@ class DockerService {
     }
   }
 
-  // Execute JavaScript code (Node.js)
   async executeJavaScriptCode(code, input) {
     const executionId = uuidv4();
     const executionDir = path.join(this.tempDir, executionId);
@@ -148,13 +142,12 @@ class DockerService {
       await fs.writeFile(path.join(executionDir, 'solution.js'), code);
       await fs.writeFile(path.join(executionDir, 'input.txt'), input);
 
-      // Execute the JavaScript code (program reads from input.txt)
       const runCmd = [
         'run', '--rm', '--network=none', '--memory=256m', '--cpus=1.0',
         '--ulimit', 'nproc=50:50',
         '-v', `${executionDir}:/app`, '-w', '/app',
         '--name', `algorush-js-${executionId}`,
-        'node:18-slim',
+        'node:16-alpine',
         'timeout', '5s', 'node', 'solution.js'
       ];
       
@@ -186,7 +179,6 @@ class DockerService {
     }
   }
 
-  // Helper to run a command with timeout
   async runCommand(args, cwd, timeout) {
     return new Promise((resolve) => {
       const startTime = Date.now();
@@ -207,7 +199,6 @@ class DockerService {
       const timeoutId = setTimeout(() => {
         timedOut = true;
         try {
-          // Find container name from args
           const nameIndex = args.indexOf('--name');
           if (nameIndex !== -1 && nameIndex + 1 < args.length) {
             const containerName = args[nameIndex + 1];

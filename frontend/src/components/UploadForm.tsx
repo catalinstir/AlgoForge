@@ -40,7 +40,6 @@ const ProblemUploadForm = ({ onSuccess }: ProblemUploadFormProps) => {
     code: `// Write your complete solution here\n\nint main() {\n    \n    return 0;\n}`,
   });
   
-  // Suggested includes for each language
   const [suggestedIncludes, setSuggestedIncludes] = useState({
     cpp: [] as string[],
     java: [] as string[],
@@ -48,7 +47,6 @@ const ProblemUploadForm = ({ onSuccess }: ProblemUploadFormProps) => {
     javascript: [] as string[],
   });
 
-  // Input fields for adding new includes
   const [includeInputs, setIncludeInputs] = useState({
     cpp: "",
     java: "",
@@ -148,7 +146,6 @@ const ProblemUploadForm = ({ onSuccess }: ProblemUploadFormProps) => {
     setSolutionCode((prev) => ({ ...prev, code: newCode }));
   };
 
-  // Handle suggested includes
   const addSuggestedInclude = (language: keyof typeof suggestedIncludes) => {
     const input = includeInputs[language].trim();
     if (input && !suggestedIncludes[language].includes(input)) {
@@ -298,7 +295,6 @@ const handleSubmit = async (e: React.FormEvent) => {
       isHidden: testCase.isHidden,
     }));
 
-    // Clean up suggested includes - remove empty ones
     const cleanedSuggestedIncludes: { [key: string]: string[] } = {};
     Object.entries(suggestedIncludes).forEach(([lang, includes]) => {
       const filtered = includes.filter(inc => inc.trim() !== "");
@@ -307,10 +303,8 @@ const handleSubmit = async (e: React.FormEvent) => {
       }
     });
 
-    // IMPORTANT: Add functionName and codeTemplates
-    const functionName = "solution"; // You may need to adjust this based on your requirements
+    const functionName = "solution";
     
-    // Generate code templates for each language
     const codeTemplates = {
       cpp: `// Write your C++ solution here\nint solution() {\n    // Your code here\n    return 0;\n}`,
       java: `// Write your Java solution here\npublic class Solution {\n    public int solution() {\n        // Your code here\n        return 0;\n    }\n}`,
@@ -325,13 +319,12 @@ const handleSubmit = async (e: React.FormEvent) => {
       testCases: cleanedTestCases,
       solutionCode: solutionCode,
       suggestedIncludes: cleanedSuggestedIncludes,
-      functionName: functionName, // ADD THIS
-      codeTemplates: codeTemplates, // ADD THIS
-      inputFormat: formData.inputFormat || "Single line input", // Ensure this exists
-      outputFormat: formData.outputFormat || "Single line output", // Ensure this exists
+      functionName: functionName,
+      codeTemplates: codeTemplates,
+      inputFormat: formData.inputFormat || "Single line input",
+      outputFormat: formData.outputFormat || "Single line output",
     };
 
-    // Debug logging
     console.log("=== REQUEST DATA ===");
     console.log("Title:", requestData.title);
     console.log("Difficulty:", requestData.difficulty);
@@ -361,9 +354,7 @@ const handleSubmit = async (e: React.FormEvent) => {
       onSuccess(response.data.requestId);
     }
 
-    // Reset form after successful submission
     setTimeout(() => {
-      // Reset to initial state
       setStep(1);
       setFormData({
         title: "",

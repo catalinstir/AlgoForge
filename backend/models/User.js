@@ -38,17 +38,15 @@ const userSchema = new mongoose.Schema({
   },
   successRate: {
     type: Number,
-    default: 0, // percent
+    default: 0, 
   },
   
-  // Track solved problems by difficulty
   solvedByDifficulty: {
     Easy: { type: Number, default: 0 },
     Medium: { type: Number, default: 0 },
     Hard: { type: Number, default: 0 },
   },
 
-  // profile
   createdAt: {
     type: Date,
     default: Date.now,

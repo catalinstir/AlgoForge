@@ -18,18 +18,15 @@ exports.getMe = async (req, res) => {
       return res.status(404).json({ error: "User not found." });
     }
 
-    // Get total published problems count
     const totalProblems = await mongoose.model("Problem").countDocuments({
       status: "Published",
     });
 
-    // Get problem count by difficulty
     const problemsByDifficulty = await mongoose.model("Problem").aggregate([
       { $match: { status: "Published" } },
       { $group: { _id: "$difficulty", count: { $sum: 1 } } }
     ]);
 
-    // Create difficulty breakdown BEFORE using it
     const difficultyBreakdown = { Easy: 0, Medium: 0, Hard: 0 };
     problemsByDifficulty.forEach(item => {
       if (item._id && difficultyBreakdown.hasOwnProperty(item._id)) {
@@ -59,7 +56,6 @@ exports.getMe = async (req, res) => {
   }
 };
 
-// Get user by ID
 exports.getUserById = async (req, res) => {
   try {
     const userId = req.params.id;
@@ -74,7 +70,6 @@ exports.getUserById = async (req, res) => {
       return res.status(404).json({ error: "User not found." });
     }
 
-    // Return only public information
     const publicUser = {
       username: user.username,
       problemsSolved: user.problemsSolved.length,
@@ -89,7 +84,6 @@ exports.getUserById = async (req, res) => {
   }
 };
 
-// Get user's solved problems
 exports.getUserSolvedProblems = async (req, res) => {
   try {
     const userId = req.params.id || req.user.userId;
@@ -115,7 +109,6 @@ exports.getUserSolvedProblems = async (req, res) => {
   }
 };
 
-// Get user's attempted problems
 exports.getUserAttemptedProblems = async (req, res) => {
   try {
     if (!req.user || !req.user.userId) {
@@ -141,7 +134,6 @@ exports.getUserAttemptedProblems = async (req, res) => {
   }
 };
 
-// Get user's uploaded problems
 exports.getUserUploadedProblems = async (req, res) => {
   try {
     const userId = req.params.id || req.user.userId;
@@ -167,7 +159,6 @@ exports.getUserUploadedProblems = async (req, res) => {
   }
 };
 
-// Update user profile
 exports.updateProfile = async (req, res) => {
   try {
     const userId = req.user.userId;
@@ -177,7 +168,6 @@ exports.updateProfile = async (req, res) => {
       return res.status(401).json({ error: "Not authorized." });
     }
 
-    // Check if username or email are already taken
     if (username || email) {
       const existingUser = await User.findOne({
         _id: { $ne: userId },
@@ -218,7 +208,6 @@ exports.updateProfile = async (req, res) => {
   }
 };
 
-// Change password
 exports.changePassword = async (req, res) => {
   try {
     const userId = req.user.userId;
@@ -245,7 +234,6 @@ exports.changePassword = async (req, res) => {
       return res.status(400).json({ error: "Current password is incorrect." });
     }
 
-    // Update password
     user.password = newPassword;
     await user.save();
 
@@ -256,7 +244,6 @@ exports.changePassword = async (req, res) => {
   }
 };
 
-// Delete account
 exports.deleteAccount = async (req, res) => {
   try {
     const userId = req.user.userId;
@@ -270,19 +257,16 @@ exports.deleteAccount = async (req, res) => {
       return res.status(400).json({ error: "Password is required to delete account." });
     }
 
-    // Find the user
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ error: "User not found." });
     }
 
-    // Verify password
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       return res.status(400).json({ error: "Incorrect password." });
     }
 
-    // Prevent admin from deleting their own account if they're the only admin
     if (user.role === "admin") {
       const adminCount = await User.countDocuments({ role: "admin" });
       if (adminCount === 1) {
@@ -295,19 +279,16 @@ exports.deleteAccount = async (req, res) => {
     console.log(`Starting account deletion for user: ${user.username} (${userId})`);
 
     try {
-      // Check if we're in a replica set environment (production)
       const isReplicaSet = process.env.MONGODB_REPLICA_SET === 'true' || 
                           process.env.NODE_ENV === 'production';
 
       if (isReplicaSet) {
-        // Use transactions in production/replica set environment
         const session = await mongoose.startSession();
         await session.withTransaction(async () => {
           await performAccountDeletion(user, userId, session);
         });
         await session.endSession();
       } else {
-        // Use sequential operations for local development (no transactions)
         await performAccountDeletion(user, userId, null);
       }
 
@@ -330,38 +311,31 @@ exports.deleteAccount = async (req, res) => {
   }
 };
 
-// Helper function to perform account deletion operations
 async function performAccountDeletion(user, userId, session = null) {
   const sessionOptions = session ? { session } : {};
 
-  // 1. Delete all user's submissions
   const deletedSubmissions = await Submission.deleteMany({ user: userId }, sessionOptions);
   console.log(`Deleted ${deletedSubmissions.deletedCount} submissions`);
 
-  // 2. Delete all user's problem requests
   const deletedRequests = await ProblemRequest.deleteMany({ submitter: userId }, sessionOptions);
   console.log(`Deleted ${deletedRequests.deletedCount} problem requests`);
 
-  // 3. Handle problems uploaded by the user
   const userProblems = await Problem.find({ author: userId }, null, sessionOptions);
   if (userProblems.length > 0) {
     console.log(`Found ${userProblems.length} problems uploaded by user`);
     
-    // Find another admin to transfer problems to
     const firstAdmin = await User.findOne({ 
       role: "admin", 
       _id: { $ne: userId } 
     }, null, sessionOptions);
     
     if (firstAdmin) {
-      // Transfer ownership to admin
       await Problem.updateMany(
         { author: userId },
         { $set: { author: firstAdmin._id } },
         sessionOptions
       );
       
-      // Update admin's problemsUploaded array
       await User.findByIdAndUpdate(
         firstAdmin._id,
         { $addToSet: { problemsUploaded: { $each: userProblems.map(p => p._id) } } },
@@ -370,13 +344,11 @@ async function performAccountDeletion(user, userId, session = null) {
       
       console.log(`Transferred ${userProblems.length} problems to admin: ${firstAdmin.username}`);
     } else {
-      // No admin available, delete the problems
       await Problem.deleteMany({ author: userId }, sessionOptions);
       console.log(`Deleted ${userProblems.length} problems (no admin to transfer to)`);
     }
   }
 
-  // 4. Remove user references from other users' arrays (if any)
   const userUpdateResult = await User.updateMany(
     {},
     { 
@@ -389,12 +361,10 @@ async function performAccountDeletion(user, userId, session = null) {
   );
   console.log(`Updated ${userUpdateResult.modifiedCount} other users to remove references`);
 
-  // 5. Update problem statistics
   for (const problemId of user.problemsSolved) {
     try {
       const problem = await Problem.findById(problemId, null, sessionOptions);
       if (problem) {
-        // Decrease unique solvers count
         problem.uniqueSolvers = Math.max(0, (problem.uniqueSolvers || 1) - 1);
         await problem.save(sessionOptions);
       }
@@ -416,12 +386,10 @@ async function performAccountDeletion(user, userId, session = null) {
     }
   }
 
-  // 6. Finally, delete the user account
   await User.findByIdAndDelete(userId, sessionOptions);
   console.log(`Deleted user account: ${user.username}`);
 }
 
-// Admin - Get all users
 exports.getAllUsers = async (req, res) => {
   try {
     if (!req.user || !req.user.userId) {
@@ -476,7 +444,6 @@ exports.getAllUsers = async (req, res) => {
   }
 };
 
-// Admin - Update user role
 exports.updateUserRole = async (req, res) => {
   try {
     if (!req.user || !req.user.userId) {

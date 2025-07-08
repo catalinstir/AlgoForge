@@ -5,22 +5,18 @@ class ExecutionService {
     this.dockerService = dockerService;
   }
 
-  // Normalize output for comparison
   normalizeOutput(output) {
     return output
       .trim()
-      .replace(/\r\n/g, '\n')      // Normalize line endings
-      .replace(/\n+$/, '')         // Remove trailing newlines
-      .replace(/^\n+/, '');        // Remove leading newlines
+      .replace(/\r\n/g, '\n')      
+      .replace(/\n+$/, '')         
+      .replace(/^\n+/, '');        
   }
 
-  // Run a single test case for C++
   async runCppTestCase(code, testCase) {
     try {
-      // Execute the C++ code directly - it reads from input.txt
       const result = await this.dockerService.executeCppCode(code, testCase.input);
 
-      // Check if execution was successful
       if (result.error && result.exitCode !== 0) {
         return {
           input: testCase.input,
@@ -35,7 +31,6 @@ class ExecutionService {
         };
       }
 
-      // Compare the result with expected output
       const normalizedExpected = this.normalizeOutput(testCase.output);
       const normalizedActual = this.normalizeOutput(result.output);
 
@@ -68,10 +63,8 @@ class ExecutionService {
     }
   }
 
-  // Run a single test case for Python
   async runPythonTestCase(code, testCase) {
     try {
-      // Execute the Python code directly - it reads from input.txt
       const result = await this.dockerService.executePythonCode(code, testCase.input);
 
       if (result.error && result.exitCode !== 0) {
@@ -119,10 +112,8 @@ class ExecutionService {
     }
   }
 
-  // Run a single test case for JavaScript
   async runJavaScriptTestCase(code, testCase) {
     try {
-      // Handle special cases like "empty" string
       let actualInput = testCase.input;
       if (testCase.input === "empty") {
         actualInput = "";
@@ -175,7 +166,6 @@ class ExecutionService {
     }
   }
 
-  // Run all test cases for a submission
   async runAllTests(code, testCases, language) {
     const results = [];
     let testCasesPassed = 0;
@@ -195,7 +185,6 @@ class ExecutionService {
           result = await this.runJavaScriptTestCase(code, testCase);
           break;
         case 'java':
-          // TODO: Implement Java execution when dockerService supports it
           result = {
             input: testCase.input,
             expectedOutput: testCase.output,
