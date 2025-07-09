@@ -60,27 +60,32 @@ interface ProblemTicket {
   title: string;
   difficulty: string;
   description: string;
+  inputFormat?: string;
+  outputFormat?: string;
   status: "Pending" | "Approved" | "Rejected";
   submitter: {
     _id: string;
     username: string;
     email: string;
   };
-  categories: string[];
-  examples: Array<{
+  categories?: string[];
+  examples?: Array<{
     input: string;
     output: string;
     explanation?: string;
   }>;
-  constraints: string[];
-  testCases: Array<{
+  constraints?: string[];
+  testCases?: Array<{
     input: string;
     output: string;
     isHidden: boolean;
   }>;
-  solutionCode: {
+  solutionCode?: {
     language: string;
     code: string;
+  };
+  suggestedIncludes?: {
+    [key: string]: string[];
   };
   createdAt: string;
   reviewedAt?: string;
@@ -156,23 +161,19 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
       const response = await problemAPI.getAllProblems();
       console.log("Problems response:", response.data);
       
-      // The getAllProblems API doesn't include author field, so we need to fetch it separately
       const transformedProblems = Array.isArray(response.data) ? response.data.map((problem: any) => ({
         ...problem,
         id: problem.id || problem._id,
         acceptance: problem.acceptance || "0%",
         totalSubmissions: problem.totalSubmissions || 0,
         totalSolvers: problem.uniqueSolvers || 0,
-        // Authors are not included in getAllProblems response, we'll fetch them
         author: { _id: "loading", username: "Loading..." },
       })) : [];
       
       setProblems(transformedProblems);
       
-      // Fetch detailed problem info including authors
       if (transformedProblems.length > 0) {
         try {
-          // Fetch each problem individually to get author info
           const problemDetailsPromises = transformedProblems.map(async (problem) => {
             try {
               const detailResponse = await problemAPI.getProblemById(problem._id);
@@ -191,7 +192,6 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
           
           const problemDetails = await Promise.all(problemDetailsPromises);
           
-          // Update problems with author information
           setProblems(prev => prev.map(problem => {
             const details = problemDetails.find(detail => detail.problemId === problem._id);
             if (details) {
@@ -225,7 +225,6 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
       console.log("Users response:", response.data);
       console.log("Sample user structure:", response.data.users?.[0]);
       
-      // Transform users data to include calculated stats
       const transformedUsers = (response.data.users || []).map((user: any) => {
         console.log(`Processing user: ${user.username}`, {
           problemsSolved: user.problemsSolved,
@@ -380,7 +379,7 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
   const handleUpdateUserRole = async (userId: string, newRole: string) => {
     try {
       await userAPI.updateUserRole(userId, { role: newRole as any });
-      fetchUsers(); // Refresh the users list
+      fetchUsers();
     } catch (error) {
       console.error("Error updating user role:", error);
     }
@@ -390,7 +389,7 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
     if (window.confirm("Are you sure you want to delete this problem? This action cannot be undone.")) {
       try {
         await problemAPI.deleteProblem(problemId);
-        fetchProblems(); // Refresh the problems list
+        fetchProblems();
       } catch (error) {
         console.error("Error deleting problem:", error);
       }
@@ -401,7 +400,7 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
     if (window.confirm("Are you sure you want to delete this submission?")) {
       try {
         await submissionAPI.deleteSubmission(submissionId);
-        fetchSubmissions(); // Refresh the submissions list
+        fetchSubmissions();
       } catch (error) {
         console.error("Error deleting submission:", error);
       }
@@ -414,14 +413,12 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
       return;
     }
 
-    // Create CSV content
     const csvContent = [
-      headers.join(","), // Header row
+      headers.join(","),
       ...data.map(row => 
         headers.map(header => {
           let value = "";
           
-          // Handle nested properties and special cases
           switch (header) {
             case "User":
               value = row.username || "";
@@ -507,7 +504,6 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
               value = row[header] || "";
           }
           
-          // Escape commas and quotes in CSV
           if (typeof value === 'string' && (value.includes(',') || value.includes('"') || value.includes('\n'))) {
             value = `"${value.replace(/"/g, '""')}"`;
           }
@@ -517,7 +513,6 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
       )
     ].join("\n");
 
-    // Create and download file
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
@@ -547,12 +542,54 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
     exportToCSV(submissions, filename, headers);
   };
 
-  const openTicketModal = (ticket: ProblemTicket) => {
-    setSelectedTicket(ticket);
+  // Fixed openTicketModal to fetch full details
+  const openTicketModal = async (ticket: ProblemTicket) => {
+    try {
+      const response = await problemRequestAPI.getRequest(ticket._id);
+      setSelectedTicket(response.data);
+    } catch (error) {
+      console.error("Error fetching ticket details:", error);
+      setSelectedTicket(ticket);
+    }
   };
 
   const closeTicketModal = () => {
     setSelectedTicket(null);
+  };
+
+  const handleDeleteTicket = async (ticketId: string, ticketTitle: string) => {
+    const confirmMessage = `Are you sure you want to delete the ticket "${ticketTitle}"?\n\nThis action cannot be undone and will permanently remove:\n- The problem submission\n- All associated data\n- Any review history`;
+    
+    if (window.confirm(confirmMessage)) {
+      try {
+        await problemRequestAPI.deleteRequest(ticketId);
+        
+        fetchTickets();
+        
+        if (selectedTicket && selectedTicket._id === ticketId) {
+          closeTicketModal();
+        }
+        
+        alert("Ticket deleted successfully!");
+      } catch (error) {
+        console.error("Error deleting ticket:", error);
+        alert("Failed to delete ticket. Please try again.");
+      }
+    }
+  };
+
+  const handleReviewTicket = async (ticketId: string, status: "Approved" | "Rejected", feedback: string) => {
+    try {
+      await problemRequestAPI.reviewRequest(ticketId, { status, feedback });
+      
+      fetchTickets();
+      closeTicketModal();
+      
+      alert(`Ticket ${status.toLowerCase()} successfully!`);
+    } catch (error) {
+      console.error("Error reviewing ticket:", error);
+      alert("Failed to review ticket. Please try again.");
+    }
   };
 
   // Permission Check: Ensure user is logged in and is an admin
@@ -803,7 +840,7 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
                               <td>
                                 <div className="fw-bold">{ticket.title}</div>
                                 <small className="text-muted">
-                                  {ticket.categories.join(", ")}
+                                  {ticket.categories?.join(", ") || "No categories"}
                                 </small>
                               </td>
                               <td>
@@ -822,12 +859,22 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
                               </td>
                               <td>{formatDate(ticket.createdAt)}</td>
                               <td>
-                                <button
-                                  className="btn btn-info btn-sm"
-                                  onClick={() => openTicketModal(ticket)}
-                                >
-                                  Review
-                                </button>
+                                <div className="btn-group" role="group" aria-label="Ticket actions">
+                                  <button
+                                    className="btn btn-info btn-sm"
+                                    onClick={() => openTicketModal(ticket)}
+                                    title="Review ticket details"
+                                  >
+                                    Review
+                                  </button>
+                                  <button
+                                    className="btn btn-danger btn-sm"
+                                    onClick={() => handleDeleteTicket(ticket._id, ticket.title)}
+                                    title="Delete this ticket"
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           ))
@@ -1048,43 +1095,31 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
                               </td>
                               <td>{formatDate(user.createdAt)}</td>
                               <td>
-                                <div className="dropdown">
+                                <div className="btn-group" role="group" aria-label="User actions">
                                   <button
-                                    className="btn btn-info btn-sm dropdown-toggle"
-                                    type="button"
-                                    data-bs-toggle="dropdown"
+                                    className="btn btn-outline-info btn-sm"
+                                    onClick={() => handleUpdateUserRole(user._id, "user")}
+                                    disabled={user.role === "user"}
+                                    title="Make User"
                                   >
-                                    Actions
+                                    User
                                   </button>
-                                  <ul className="dropdown-menu dropdown-menu-dark">
-                                    <li>
-                                      <button
-                                        className="dropdown-item"
-                                        onClick={() => handleUpdateUserRole(user._id, "user")}
-                                        disabled={user.role === "user"}
-                                      >
-                                        Make User
-                                      </button>
-                                    </li>
-                                    <li>
-                                      <button
-                                        className="dropdown-item"
-                                        onClick={() => handleUpdateUserRole(user._id, "admin")}
-                                        disabled={user.role === "admin"}
-                                      >
-                                        Make Admin
-                                      </button>
-                                    </li>
-                                    <li>
-                                      <button
-                                        className="dropdown-item"
-                                        onClick={() => handleUpdateUserRole(user._id, "guest")}
-                                        disabled={user.role === "guest"}
-                                      >
-                                        Make Guest
-                                      </button>
-                                    </li>
-                                  </ul>
+                                  <button
+                                    className="btn btn-outline-warning btn-sm"
+                                    onClick={() => handleUpdateUserRole(user._id, "admin")}
+                                    disabled={user.role === "admin"}
+                                    title="Make Admin"
+                                  >
+                                    Admin
+                                  </button>
+                                  <button
+                                    className="btn btn-outline-secondary btn-sm"
+                                    onClick={() => handleUpdateUserRole(user._id, "guest")}
+                                    disabled={user.role === "guest"}
+                                    title="Make Guest"
+                                  >
+                                    Guest
+                                  </button>
                                 </div>
                               </td>
                             </tr>
@@ -1284,10 +1319,10 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
         </div>
       </div>
 
-      {/* Ticket Review Modal */}
+      {/* Ticket Review Modal - Fixed with proper null checks */}
       {selectedTicket && (
         <div className="modal fade show" style={{ display: "block" }} tabIndex={-1}>
-          <div className="modal-dialog modal-lg">
+          <div className="modal-dialog modal-xl">
             <div className="modal-content bg-dark text-light">
               <div className="modal-header border-secondary">
                 <h5 className="modal-title">Review Problem Submission</h5>
@@ -1303,7 +1338,12 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
                     <h6>Problem Details</h6>
                     <p><strong>Title:</strong> {selectedTicket.title}</p>
                     <p><strong>Difficulty:</strong> <span className={getDifficultyColorClass(selectedTicket.difficulty)}>{selectedTicket.difficulty}</span></p>
-                    <p><strong>Categories:</strong> {selectedTicket.categories.join(", ")}</p>
+                    
+                    {/* Categories - Fixed to handle undefined */}
+                    {selectedTicket.categories && selectedTicket.categories.length > 0 && (
+                      <p><strong>Categories:</strong> {selectedTicket.categories.join(", ")}</p>
+                    )}
+                    
                     <p><strong>Submitter:</strong> {selectedTicket.submitter.username} ({selectedTicket.submitter.email})</p>
                   </div>
                   <div className="col-md-6">
@@ -1323,32 +1363,111 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
                   </div>
                 </div>
 
-                <div className="mt-3">
-                  <h6>Examples ({selectedTicket.examples.length})</h6>
-                  {selectedTicket.examples.map((example, index) => (
-                    <div key={index} className="mb-2 p-2 bg-secondary rounded">
-                      <strong>Example {index + 1}:</strong>
-                      <br />
-                      <code>Input: {example.input}</code>
-                      <br />
-                      <code>Output: {example.output}</code>
-                      {example.explanation && (
-                        <>
-                          <br />
-                          <small>Explanation: {example.explanation}</small>
-                        </>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                {/* Input/Output Format - Fixed to handle undefined */}
+                {(selectedTicket.inputFormat || selectedTicket.outputFormat) && (
+                  <div className="mt-3">
+                    <h6>Input/Output Format</h6>
+                    {selectedTicket.inputFormat && (
+                      <div className="mb-2">
+                        <strong>Input Format:</strong>
+                        <div className="p-2 bg-secondary rounded mt-1">
+                          {selectedTicket.inputFormat}
+                        </div>
+                      </div>
+                    )}
+                    {selectedTicket.outputFormat && (
+                      <div className="mb-2">
+                        <strong>Output Format:</strong>
+                        <div className="p-2 bg-secondary rounded mt-1">
+                          {selectedTicket.outputFormat}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
 
-                <div className="mt-3">
-                  <h6>Test Cases ({selectedTicket.testCases.length})</h6>
-                  <small className="text-muted">
-                    {selectedTicket.testCases.filter(tc => !tc.isHidden).length} public, 
-                    {selectedTicket.testCases.filter(tc => tc.isHidden).length} hidden
-                  </small>
-                </div>
+                {/* Examples - Fixed to handle undefined */}
+                {selectedTicket.examples && selectedTicket.examples.length > 0 && (
+                  <div className="mt-3">
+                    <h6>Examples ({selectedTicket.examples.length})</h6>
+                    {selectedTicket.examples.map((example, index) => (
+                      <div key={index} className="mb-2 p-2 bg-secondary rounded">
+                        <strong>Example {index + 1}:</strong>
+                        <br />
+                        <code>Input: {example.input}</code>
+                        <br />
+                        <code>Output: {example.output}</code>
+                        {example.explanation && (
+                          <>
+                            <br />
+                            <small>Explanation: {example.explanation}</small>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Test Cases - Fixed to handle undefined testCases */}
+                {selectedTicket.testCases && selectedTicket.testCases.length > 0 ? (
+                  <div className="mt-3">
+                    <h6>Test Cases ({selectedTicket.testCases.length})</h6>
+                    <small className="text-muted">
+                      {selectedTicket.testCases.filter(tc => !tc.isHidden).length} public, 
+                      {selectedTicket.testCases.filter(tc => tc.isHidden).length} hidden
+                    </small>
+                  </div>
+                ) : (
+                  <div className="mt-3">
+                    <h6>Test Cases</h6>
+                    <p className="text-muted">Test case details not available in summary view.</p>
+                  </div>
+                )}
+
+                {/* Solution Code - Fixed to handle undefined */}
+                {selectedTicket.solutionCode && (
+                  <div className="mt-3">
+                    <h6>Solution Code ({selectedTicket.solutionCode.language?.toUpperCase() || "Unknown"})</h6>
+                    <pre className="bg-secondary p-3 rounded" style={{ maxHeight: '200px', overflow: 'auto' }}>
+                      <code>{selectedTicket.solutionCode.code || "No solution code provided"}</code>
+                    </pre>
+                  </div>
+                )}
+
+                {/* Suggested Includes - Fixed to handle undefined */}
+                {selectedTicket.suggestedIncludes && Object.keys(selectedTicket.suggestedIncludes).length > 0 && (
+                  <div className="mt-3">
+                    <h6>Suggested Includes</h6>
+                    {Object.entries(selectedTicket.suggestedIncludes).map(([lang, includes]: [string, any]) => (
+                      includes && includes.length > 0 && (
+                        <div key={lang} className="mb-2">
+                          <strong className="text-info">{lang.toUpperCase()}:</strong>
+                          <div className="mt-1">
+                            {includes.map((include: string, idx: number) => (
+                              <div key={idx} className="text-muted small">
+                                <code>{include}</code>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )
+                    ))}
+                  </div>
+                )}
+
+                {/* Constraints - Fixed to handle undefined */}
+                {selectedTicket.constraints && selectedTicket.constraints.length > 0 && (
+                  <div className="mt-3">
+                    <h6>Constraints ({selectedTicket.constraints.length})</h6>
+                    <ul className="list-unstyled">
+                      {selectedTicket.constraints.map((constraint, index) => (
+                        <li key={index} className="mb-1">
+                          <code>{constraint}</code>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
                 {selectedTicket.feedback && (
                   <div className="mt-3">
@@ -1382,6 +1501,16 @@ const AdminDashboard = ({ currentUser }: AdminDashboardProps) => {
                       Reject
                     </button>
                   </>
+                )}
+                {selectedTicket.status === "Approved" && selectedTicket.approvedProblem && (
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => window.open(`/problem/${selectedTicket.approvedProblem?._id}`, '_blank')}
+                  >
+                    <i className="bi bi-arrow-right me-1"></i>
+                    View Published Problem
+                  </button>
                 )}
                 <button
                   type="button"

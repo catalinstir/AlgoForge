@@ -225,7 +225,7 @@ export const problemRequestAPI = {
   
   // Cancel a problem request
   cancelRequest: (requestId: string): Promise<AxiosResponse<any>> => 
-    apiClient.delete(`/api/problem-requests/${requestId}`),
+    apiClient.delete(`/api/problem-requests/${requestId}/cancel`),
   
   // Admin functions
   getAllRequests: (params?: ProblemRequestFilterParams): Promise<AxiosResponse<any>> => 
@@ -233,6 +233,10 @@ export const problemRequestAPI = {
   
   reviewRequest: (requestId: string, data: ProblemReviewData): Promise<AxiosResponse<any>> => 
     apiClient.put(`/api/problem-requests/${requestId}/review`, data),
+  
+  // NEW: Delete a problem request (admin only)
+  deleteRequest: (requestId: string): Promise<AxiosResponse<any>> => 
+    apiClient.delete(`/api/problem-requests/${requestId}/delete`),
 };
 
 export default apiClient;

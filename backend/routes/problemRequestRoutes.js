@@ -5,13 +5,16 @@ const authMiddleware = require("../middleware/authMiddleware");
 
 router.use(authMiddleware);
 
+// User routes
 router.post("/", problemRequestController.submitProblemRequest);
 router.get("/my-requests", problemRequestController.getUserProblemRequests);
 router.get("/:id", problemRequestController.getProblemRequest);
 router.put("/:id", problemRequestController.updateProblemRequest);
-router.delete("/:id", problemRequestController.cancelProblemRequest);
+router.delete("/:id/cancel", problemRequestController.cancelProblemRequest);
 
+// Admin routes
 router.get("/", problemRequestController.getAllProblemRequests);
 router.put("/:id/review", problemRequestController.reviewProblemRequest);
+router.delete("/:id/delete", problemRequestController.deleteProblemRequest);
 
 module.exports = router;

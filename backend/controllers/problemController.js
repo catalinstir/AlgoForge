@@ -255,8 +255,18 @@ exports.deleteProblem = async (req, res) => {
       return res.status(404).json({ error: "Problem not found." });
     }
 
-    await Problem.findByIdAndDelete(problemId);
+    // Find all users who solved this problem to update their difficulty counts
+    const usersWhoSolved = await User.find({ problemsSolved: problemId });
+    
+    // Update solvedByDifficulty counts for users who solved this problem
+    for (const userWhoSolved of usersWhoSolved) {
+      const difficultyField = `solvedByDifficulty.${problem.difficulty}`;
+      await User.findByIdAndUpdate(userWhoSolved._id, {
+        $inc: { [difficultyField]: -1 }
+      });
+    }
 
+    // Remove the problem from all user arrays
     await User.updateMany(
       {
         $or: [
@@ -274,7 +284,42 @@ exports.deleteProblem = async (req, res) => {
       }
     );
 
-    res.json({ message: "Problem deleted successfully." });
+    // Update success rates for all affected users
+    const affectedUsers = await User.find({
+      $or: [
+        { problemsAttempted: { $exists: true } },
+        { problemsSolved: { $exists: true } }
+      ]
+    });
+
+    for (const affectedUser of affectedUsers) {
+      if (affectedUser.problemsAttempted.length > 0) {
+        const successRate = (affectedUser.problemsSolved.length / affectedUser.problemsAttempted.length) * 100;
+        await User.findByIdAndUpdate(affectedUser._id, { successRate });
+      } else {
+        await User.findByIdAndUpdate(affectedUser._id, { successRate: 0 });
+      }
+    }
+
+    // Delete all submissions for this problem
+    await mongoose.model("Submission").deleteMany({ problem: problemId });
+
+    // Delete any problem requests related to this problem
+    await mongoose.model("ProblemRequest").updateMany(
+      { approvedProblem: problemId },
+      { $unset: { approvedProblem: 1 } }
+    );
+
+    // Finally delete the problem
+    await Problem.findByIdAndDelete(problemId);
+
+    console.log(`Problem "${problem.title}" deleted successfully. Updated stats for ${usersWhoSolved.length} users who had solved it.`);
+
+    res.json({ 
+      message: "Problem deleted successfully.",
+      affectedUsers: usersWhoSolved.length,
+      deletedSubmissions: await mongoose.model("Submission").countDocuments({ problem: problemId })
+    });
   } catch (err) {
     console.error("Error deleting problem:", err);
     res.status(500).json({ error: "Failed to delete problem." });

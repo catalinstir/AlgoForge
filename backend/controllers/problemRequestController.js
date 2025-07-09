@@ -6,10 +6,18 @@ const mongoose = require("mongoose");
 exports.submitProblemRequest = async (req, res) => {
   try {
     const userId = req.user.userId;
+    
+    // DEBUG: Log the entire request body
+    console.log("=== FULL REQUEST BODY ===");
+    console.log(JSON.stringify(req.body, null, 2));
+    console.log("=== END REQUEST BODY ===");
+
     const {
       title,
       difficulty,
       description,
+      inputFormat,
+      outputFormat,
       examples,
       constraints,
       testCases,
@@ -17,17 +25,48 @@ exports.submitProblemRequest = async (req, res) => {
       codeTemplates,
       solutionCode,
       categories,
+      suggestedIncludes,
     } = req.body;
+
+    // DEBUG: Log individual fields
+    console.log("=== EXTRACTED FIELDS ===");
+    console.log("title:", title);
+    console.log("difficulty:", difficulty);
+    console.log("description:", description);
+    console.log("inputFormat:", inputFormat);
+    console.log("outputFormat:", outputFormat);
+    console.log("examples:", examples);
+    console.log("constraints:", constraints);
+    console.log("testCases:", testCases);
+    console.log("functionName:", functionName);
+    console.log("codeTemplates:", codeTemplates);
+    console.log("solutionCode:", solutionCode);
+    console.log("categories:", categories);
+    console.log("suggestedIncludes:", suggestedIncludes);
+    console.log("=== END EXTRACTED FIELDS ===");
 
     if (
       !title ||
       !difficulty ||
       !description ||
+      !inputFormat ||
+      !outputFormat ||
       !functionName ||
       !solutionCode ||
       !solutionCode.code ||
       !solutionCode.language
     ) {
+      console.log("=== VALIDATION FAILED ===");
+      console.log("Missing fields check:");
+      console.log("title:", !!title);
+      console.log("difficulty:", !!difficulty);
+      console.log("description:", !!description);
+      console.log("inputFormat:", !!inputFormat);
+      console.log("outputFormat:", !!outputFormat);
+      console.log("functionName:", !!functionName);
+      console.log("solutionCode:", !!solutionCode);
+      console.log("solutionCode.code:", !!(solutionCode && solutionCode.code));
+      console.log("solutionCode.language:", !!(solutionCode && solutionCode.language));
       return res.status(400).json({ error: "Missing required fields." });
     }
 
@@ -45,11 +84,14 @@ exports.submitProblemRequest = async (req, res) => {
         });
     }
 
-    const problemRequest = new ProblemRequest({
+    console.log("=== CREATING PROBLEM REQUEST ===");
+    const problemRequestData = {
       submitter: userId,
       title,
       difficulty,
       description,
+      inputFormat,
+      outputFormat,
       examples: examples || [],
       constraints: constraints || [],
       testCases: testCases || [],
@@ -57,7 +99,12 @@ exports.submitProblemRequest = async (req, res) => {
       codeTemplates: codeTemplates || {},
       solutionCode: solutionCode,
       categories: categories || [],
-    });
+      suggestedIncludes: suggestedIncludes || {},
+    };
+    
+    console.log("Problem request data:", JSON.stringify(problemRequestData, null, 2));
+
+    const problemRequest = new ProblemRequest(problemRequestData);
 
     await problemRequest.save();
 
@@ -239,6 +286,67 @@ exports.cancelProblemRequest = async (req, res) => {
   } catch (err) {
     console.error("Error canceling problem request:", err);
     res.status(500).json({ error: "Failed to cancel problem request." });
+  }
+};
+
+exports.deleteProblemRequest = async (req, res) => {
+  try {
+    const requestId = req.params.id;
+    const userId = req.user.userId;
+
+    console.log("=== DELETE REQUEST ATTEMPT ===");
+    console.log("Request ID:", requestId);
+    console.log("User ID:", userId);
+
+    if (!mongoose.Types.ObjectId.isValid(requestId)) {
+      return res.status(400).json({ error: "Invalid request ID." });
+    }
+
+    const user = await User.findById(userId);
+    console.log("User role:", user?.role);
+
+    if (!user || user.role !== "admin") {
+      return res
+        .status(403)
+        .json({ error: "Only admins can delete problem requests." });
+    }
+
+    const request = await ProblemRequest.findById(requestId);
+    console.log("Found request:", request ? request.title : "Not found");
+
+    if (!request) {
+      return res.status(404).json({ error: "Problem request not found." });
+    }
+
+    // If the request was approved and created a problem, prevent deletion
+    if (request.status === "Approved" && request.approvedProblem) {
+      return res.status(400).json({ 
+        error: "Cannot delete approved requests that have created published problems. Delete the published problem first if needed." 
+      });
+    }
+
+    // Store info for logging before deletion
+    const requestInfo = {
+      title: request.title,
+      submitter: request.submitter.toString(),
+      status: request.status
+    };
+
+    await ProblemRequest.findByIdAndDelete(requestId);
+
+    console.log(`Problem request deleted:`, requestInfo);
+
+    res.json({ 
+      message: "Problem request deleted successfully.",
+      deletedRequest: {
+        id: requestId,
+        title: requestInfo.title,
+        status: requestInfo.status
+      }
+    });
+  } catch (err) {
+    console.error("Error deleting problem request:", err);
+    res.status(500).json({ error: "Failed to delete problem request." });
   }
 };
 
