@@ -1,4 +1,3 @@
-import React from "react";
 import { Problem } from "../types";
 
 interface ProblemDescriptionProps {

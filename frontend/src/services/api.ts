@@ -1,5 +1,5 @@
-import axios, { AxiosInstance, AxiosResponse } from 'axios';
-import { 
+import axios, { AxiosResponse } from 'axios';
+import {
   LoginCredentials,
   RegisterData,
   UpdateProfileData,
@@ -9,6 +9,7 @@ import {
   ProblemFilterParams,
   UserFilterParams,
   SubmissionFilterParams,
+  AdminSubmissionFilterParams,
   ProblemRequestFilterParams,
   CodeSubmissionData,
   ProblemData,

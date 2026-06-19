@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { User } from "../../types";
 import ProblemUploadForm from "../../components/UploadForm";
@@ -29,7 +29,7 @@ const PublishProblem = ({ currentUser }: PublishProblemProps) => {
     );
   }
 
-  const handleUploadSuccess = (requestId: string) => {
+  const handleUploadSuccess = (_requestId: string) => {
     setShowSuccessMessage(true);
     // Auto-hide success message after 5 seconds
     setTimeout(() => {

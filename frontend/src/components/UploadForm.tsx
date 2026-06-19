@@ -54,7 +54,7 @@ const ProblemUploadForm = ({ onSuccess }: ProblemUploadFormProps) => {
     javascript: "",
   });
 
-  const [currentIncludeLanguage, setCurrentIncludeLanguage] = useState("cpp");
+  const [currentIncludeLanguage, setCurrentIncludeLanguage] = useState<"cpp" | "java" | "python" | "javascript">("cpp");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -398,39 +398,6 @@ const handleSubmit = async (e: React.FormEvent) => {
     setLoading(false);
   }
 };
-
-  const resetForm = () => {
-    setFormData({
-      title: "",
-      difficulty: "Medium",
-      description: "",
-      inputFormat: "",
-      outputFormat: "",
-      categories: [],
-    });
-    setExamples([{ input: "", output: "", explanation: "" }]);
-    setConstraints([""]);
-    setTestCases([{ input: "", output: "", isHidden: false }]);
-    setSolutionCode({
-      language: "cpp",
-      code: `// Write your complete solution here\n\nint main() {\n    \n    return 0;\n}`,
-    });
-    setSuggestedIncludes({
-      cpp: [],
-      java: [],
-      python: [],
-      javascript: [],
-    });
-    setIncludeInputs({
-      cpp: "",
-      java: "",
-      python: "",
-      javascript: "",
-    });
-    setCurrentIncludeLanguage("cpp");
-    setStep(1);
-    setCategoryInput("");
-  };
 
   return (
     <div className="problem-upload-form">

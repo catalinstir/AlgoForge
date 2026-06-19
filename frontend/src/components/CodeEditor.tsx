@@ -27,7 +27,7 @@ const CodeEditor = ({ code, language, onChange }: CodeEditorProps) => {
     onChange(e.target.value);
   };
 
-  const handleScroll = (e: React.UIEvent<HTMLTextAreaElement>) => {
+  const handleScroll = (_e: React.UIEvent<HTMLTextAreaElement>) => {
     if (previewRef.current && editorRef.current) {
       previewRef.current.scrollTop = editorRef.current.scrollTop;
       previewRef.current.scrollLeft = editorRef.current.scrollLeft;

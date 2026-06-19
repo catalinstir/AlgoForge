@@ -6,7 +6,6 @@ import {
   useLocation,
   useNavigate,
 } from "react-router-dom";
-import axios from "axios";
 import Login from "./pages/login/Login";
 import Navbar from "./components/Navbar";
 import ProblemList from "./components/ProblemList";
@@ -18,7 +17,7 @@ import Browse from "./pages/browse/Browse"; // ADD THIS
 import PublishProblem from "./pages/publish/PublishProblem"; // ADD THIS
 import MyProblems from "./pages/my-problems/MyProblems"; // ADD THIS
 import AdminDashboard from "./pages/admin/AdminDashboard";
-import apiClient, { userAPI, authAPI } from "./services/api";
+import { userAPI, authAPI } from "./services/api";
 import { User, UserRole } from "./types";
 
 const BackgroundManager = ({ children }: { children: React.ReactNode }) => {
@@ -73,7 +72,7 @@ const AppContent = () => {
         userError
       );
       try {
-        const authResponse = await authAPI.getCurrentUser();
+        const authResponse = await authAPI.getMe();
         console.log("User data fetched from auth endpoint:", authResponse.data);
         setCurrentUser(authResponse.data);
         setIsLoggedIn(true);
@@ -117,8 +116,8 @@ const AppContent = () => {
     navigate("/login");
   };
 
-  const handleLoginSuccess = async (userData: User) => {
-    console.log("Login successful, user data:", userData);
+  const handleLoginSuccess = async (_token: string) => {
+    console.log("Login successful, fetching user data...");
     try {
       // The token is already stored by Login component
       // Just fetch fresh user data
